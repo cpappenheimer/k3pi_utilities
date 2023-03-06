@@ -10,6 +10,8 @@ namespace K3PiStudies {
 	const std::string K3PiStudiesUtils::_RS_FLAG = "RS";
     const std::string K3PiStudiesUtils::_WS_FLAG = "WS";
     const std::string K3PiStudiesUtils::_BOTH_FLAG = "BOTH";
+	const double K3PiStudiesUtils::_C_M_PER_SEC = 3.0 * TMath::Power(10, 8);
+	const double K3PiStudiesUtils::_SEC_TO_NS = TMath::Power(10, 9);
 
 	double K3PiStudiesUtils::cTauMMToTauNS(double cTauMM)
 	{

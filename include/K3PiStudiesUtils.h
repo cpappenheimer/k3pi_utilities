@@ -25,9 +25,9 @@ struct InvalidDecayError : std::exception
 
 class K3PiStudiesUtils final {
    public:
-      static constexpr double _C_M_PER_SEC = 3.0 * pow(10, 8);
+      static const double _C_M_PER_SEC;
       static constexpr double _MM_TO_M = 1.0 / 1000.0;
-      static constexpr double _SEC_TO_NS = pow(10, 9);
+      static const double _SEC_TO_NS;
       static const unsigned int _KAON_ID = 321;
       static const unsigned int _PION_ID = 211;
       static constexpr double _PI = TMath::Pi();
