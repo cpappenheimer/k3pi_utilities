@@ -27,4 +27,5 @@ target_include_directories(K3PiStudiesUtils
 target_link_libraries(K3PiStudiesUtils PUBLIC 
                         ROOT::Core 
                         ROOT::MathCore
-                        ROOT::Physics)
+                        ROOT::Physics
+                        ROOT::ROOTVecOps)
