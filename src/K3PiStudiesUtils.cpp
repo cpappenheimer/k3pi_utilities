@@ -282,8 +282,8 @@ namespace K3PiStudies
 
 		// Boost everything to D0 restframe
 		auto mum = piGoesWithPi + ssPiVec + kVec + piGoesWithK;
-		double m12 = (piGoesWithPi + ssPiVec).M();
-		double m34 = (kVec + piGoesWithK).M();
+		double m12 = (kVec + piGoesWithK).M();
+		double m34 = (piGoesWithPi + ssPiVec).M();
 		double m13 = (piGoesWithPi + kVec).M();
 		piGoesWithPi.Boost(-mum.BoostVector());
 		ssPiVec.Boost(-mum.BoostVector());
@@ -321,9 +321,9 @@ namespace K3PiStudies
 		TVector3 kVecrn = kVecr.Vect().Unit();
 
 		// helicity angle for piPiVec and kPiVec frame
-		double cos1 = piPiVecn.Dot(piGoesWithPirn);
-		double cos2 = kPiVecn.Dot(kVecrn);
-
+		double cos1 = kPiVecn.Dot(kVecrn);
+		double cos2 = piPiVecn.Dot(piGoesWithPirn);
+	
 		// *12 = k, os pi that makes lower mass
 		// *34 = ss pi, other os pi 
 		std::vector<double> vars = {m12, m34, cos1, cos2, phi, m13};
