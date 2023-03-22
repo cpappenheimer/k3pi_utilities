@@ -60,6 +60,9 @@ namespace K3PiStudies
 		static const std::string _BOTH_FLAG;
 		static constexpr double _KAON_MASS = 493.677;
 		static constexpr double _PION_MASS = 139.57061;
+		static const std::string _REFIT_FLAG;
+		static const std::string _D0_FIT_FLAG;
+		static const std::string _P_FLAG;
 
 		K3PiStudiesUtils() = default;
 		K3PiStudiesUtils(const K3PiStudiesUtils &copyMe) = default;
@@ -349,6 +352,47 @@ namespace K3PiStudies
 			double D0_P2_PE,
 			double D0_P3_PE);
 
+		static bool areDoublesEqual(double d1, double d2, const std::string &varName, bool printDiff);
+
 	}; // end K3PiStudiesUtils class
+
+	struct Phsp4Body
+	{
+		const double _m12_MeV;
+		const double _m34_MeV;
+		const double _cos12;
+		const double _cos34;
+		const double _phi_rad;
+
+		Phsp4Body(
+			double m12_MeV,
+			double m34_MeV,
+			double cos12,
+			double cos34,
+			double phi_rad) : _m12_MeV(m12_MeV), _m34_MeV(m34_MeV), _cos12(cos12), _cos34(cos34), _phi_rad(phi_rad)
+		{
+		}
+
+		int compare(const Phsp4Body& other) const
+		{
+			bool isEqual[5];
+			isEqual[0] = K3PiStudiesUtils::areDoublesEqual(this->_m12_MeV, other._m12_MeV, "m12", true);
+			isEqual[1] = K3PiStudiesUtils::areDoublesEqual(this->_m34_MeV, other._m34_MeV, "m34", true);
+			isEqual[2] = K3PiStudiesUtils::areDoublesEqual(this->_cos12, other._cos12, "cos12", true);
+			isEqual[3] = K3PiStudiesUtils::areDoublesEqual(this->_cos34, other._cos34, "cos34", true);
+			isEqual[4] = K3PiStudiesUtils::areDoublesEqual(this->_phi_rad, other._phi_rad, "phi", true);
+
+			int numDiffs = 0;
+			for (int i = 0; i < 5; i++)
+			{
+				if (!isEqual[i])
+				{
+					numDiffs++;
+				}
+			}
+
+			return numDiffs;
+		}
+	};
 
 } // end namespace K3PiStudies

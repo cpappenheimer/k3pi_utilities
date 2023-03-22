@@ -13,6 +13,27 @@ namespace K3PiStudies
 	const std::string K3PiStudiesUtils::_BOTH_FLAG = "BOTH";
 	const double K3PiStudiesUtils::_C_M_PER_SEC = 3.0 * TMath::Power(10, 8);
 	const double K3PiStudiesUtils::_SEC_TO_NS = TMath::Power(10, 9);
+	const std::string K3PiStudiesUtils::_REFIT_FLAG = "REFIT";
+	const std::string K3PiStudiesUtils::_D0_FIT_FLAG = "D0_FIT";
+	const std::string K3PiStudiesUtils::_P_FLAG = "P";
+
+
+	bool K3PiStudiesUtils::areDoublesEqual(double d1, double d2, const std::string& varName, bool printDiff)
+	{
+		if (d1 != d2)
+		{
+			if (printDiff)
+			{
+				std::cout << "Found difference for " << varName << ": " << d1 << ", " << d2 << std::endl;
+			}
+			
+			return false;
+		}
+		else
+		{
+			return true;
+		}
+	}
 
 	/**
 	 * For the D0_P0_*, D0_P1_*, D0_P2_*, D0_P3_* vars
@@ -223,8 +244,7 @@ namespace K3PiStudies
 		double Pi_OS2_D0Fit_PHI,
 		bool ordered)
 	{
-		// 4 the opposite charge pions
-		TLorentzVector piOS1Vec, ssPiVec, kVec, piOS2Vec;
+		TLorentzVector piGoesWithPi, ssPiVec, kVec, piGoesWithK;
 		ssPiVec.SetPtEtaPhiM(Pi_SS_D0Fit_PT, Pi_SS_D0Fit_ETA, Pi_SS_D0Fit_PHI, _PION_MASS);
 		kVec.SetPtEtaPhiM(K_D0Fit_PT, K_D0Fit_ETA, K_D0Fit_PHI, _KAON_MASS);
 
@@ -236,53 +256,53 @@ namespace K3PiStudies
 
 			if (isKPi1LowerMassPair(kVec, pi1, pi2))
 			{
-				piOS1Vec.SetPtEtaPhiM(pi1.Pt(), pi1.Eta(), pi1.Phi(), _PION_MASS);
-				piOS2Vec.SetPtEtaPhiM(pi2.Pt(), pi2.Eta(), pi2.Phi(), _PION_MASS);
+				piGoesWithPi.SetPtEtaPhiM(pi2.Pt(), pi2.Eta(), pi2.Phi(), _PION_MASS);
+				piGoesWithK.SetPtEtaPhiM(pi1.Pt(), pi1.Eta(), pi1.Phi(), _PION_MASS);
 			}
 			else
 			{
-				piOS1Vec.SetPtEtaPhiM(pi2.Pt(), pi2.Eta(), pi2.Phi(), _PION_MASS);
-				piOS2Vec.SetPtEtaPhiM(pi1.Pt(), pi1.Eta(), pi1.Phi(), _PION_MASS);
+				piGoesWithPi.SetPtEtaPhiM(pi1.Pt(), pi1.Eta(), pi1.Phi(), _PION_MASS);
+				piGoesWithK.SetPtEtaPhiM(pi2.Pt(), pi2.Eta(), pi2.Phi(), _PION_MASS);
 			}
 		}
 		else
 		{
-			// Randomise the assignment of piOS1Vec and piOS2Vec, which should be the two OS pions.
+			// Randomise the assignment of piGoesWithPi and piGoesWithK, which should be the two OS pions.
 			if (((double)std::rand() / (RAND_MAX)) < 0.5) // FIXME use seed
 			{
-				piOS1Vec.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, _PION_MASS);
-				piOS2Vec.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, _PION_MASS);
+				piGoesWithPi.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, _PION_MASS);
+				piGoesWithK.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, _PION_MASS);
 			}
 			else
 			{
-				piOS2Vec.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, _PION_MASS);
-				piOS1Vec.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, _PION_MASS);
+				piGoesWithK.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, _PION_MASS);
+				piGoesWithPi.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, _PION_MASS);
 			}
 		}
 
 		// Boost everything to D0 restframe
-		auto mum = piOS1Vec + ssPiVec + kVec + piOS2Vec;
-		double m12 = (piOS1Vec + ssPiVec).M();
-		double m34 = (kVec + piOS2Vec).M();
-		double m13 = (piOS1Vec + kVec).M();
-		piOS1Vec.Boost(-mum.BoostVector());
+		auto mum = piGoesWithPi + ssPiVec + kVec + piGoesWithK;
+		double m12 = (piGoesWithPi + ssPiVec).M();
+		double m34 = (kVec + piGoesWithK).M();
+		double m13 = (piGoesWithPi + kVec).M();
+		piGoesWithPi.Boost(-mum.BoostVector());
 		ssPiVec.Boost(-mum.BoostVector());
 		kVec.Boost(-mum.BoostVector());
-		piOS2Vec.Boost(-mum.BoostVector());
+		piGoesWithK.Boost(-mum.BoostVector());
 
 		TLorentzVector piPiVec, kPiVec;
-		piPiVec = piOS1Vec + ssPiVec;
-		kPiVec = kVec + piOS2Vec;
+		piPiVec = piGoesWithPi + ssPiVec;
+		kPiVec = kVec + piGoesWithK;
 
-		TVector3 piOS1Vecn = piOS1Vec.Vect().Unit();
+		TVector3 piGoesWithPin = piGoesWithPi.Vect().Unit();
 		TVector3 ssPiVecn = ssPiVec.Vect().Unit();
 		TVector3 kVecn = kVec.Vect().Unit();
-		TVector3 piOS2Vecn = piOS2Vec.Vect().Unit();
+		TVector3 piGoesWithKn = piGoesWithK.Vect().Unit();
 		TVector3 piPiVecn = piPiVec.Vect().Unit();
 		TVector3 kPiVecn = kPiVec.Vect().Unit();
 
-		TVector3 n1 = piOS1Vecn.Cross(ssPiVecn);
-		TVector3 n2 = kVecn.Cross(piOS2Vecn);
+		TVector3 n1 = piGoesWithPin.Cross(ssPiVecn);
+		TVector3 n2 = kVecn.Cross(piGoesWithKn);
 		TVector3 n3 = n1.Unit().Cross(n2.Unit());
 
 		// Calculation of the angle Phi between the planes.
@@ -293,17 +313,19 @@ namespace K3PiStudies
 			phi *= -1;
 
 		// Vectors in rest fram of their resonance.
-		TLorentzVector piOS1Vecr = piOS1Vec;
+		TLorentzVector piGoesWithPir = piGoesWithPi;
 		TLorentzVector kVecr = kVec;
-		piOS1Vecr.Boost(-piPiVec.BoostVector());
+		piGoesWithPir.Boost(-piPiVec.BoostVector());
 		kVecr.Boost(-kPiVec.BoostVector());
-		TVector3 piOS1Vecrn = piOS1Vecr.Vect().Unit();
+		TVector3 piGoesWithPirn = piGoesWithPir.Vect().Unit();
 		TVector3 kVecrn = kVecr.Vect().Unit();
 
 		// helicity angle for piPiVec and kPiVec frame
-		double cos1 = piPiVecn.Dot(piOS1Vecrn);
+		double cos1 = piPiVecn.Dot(piGoesWithPirn);
 		double cos2 = kPiVecn.Dot(kVecrn);
 
+		// *12 = k, os pi that makes lower mass
+		// *34 = ss pi, other os pi 
 		std::vector<double> vars = {m12, m34, cos1, cos2, phi, m13};
 		return vars;
 	}
