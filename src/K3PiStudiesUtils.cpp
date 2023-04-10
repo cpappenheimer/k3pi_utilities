@@ -38,15 +38,43 @@ namespace K3PiStudies
 	}
 
 	/**
- 	* returns angle between planes in range 0 to 2pi
+ 	* returns angle between planes in range 0 to 2pi (if changeAngleRange = true) or -pi to pi (if changeAngleRange = false)
 	* see https://math.stackexchange.com/questions/878785/how-to-find-an-angle-in-range0-360-between-2-vectors
 	*/
-	double K3PiStudiesUtils::angleBetweenPlanes(const TVector3& norm1, const TVector3& norm2)
+	double K3PiStudiesUtils::angleBetweenPlanes(
+		const TVector3& norm1,
+		const TVector3& norm2,
+		bool changeAngleRange,
+		bool verifyAngle)
 	{
 		double cosPhi = cosAngleBetweenPlanes(norm1, norm2);
 		double sinPhi = sinAngleBetweenPlanes(norm1, norm2);
 
-		return K3PiStudiesUtils::atan2_0_to_2pi(sinPhi, cosPhi);	
+		// ranges from -pi to pi
+		double phi = TMath::ATan2(sinPhi, cosPhi);
+
+		if (verifyAngle)
+		{
+			double angleToCompare = norm1.Angle(norm2);
+			// .Angle uses acos, which ranges from 0 to pi. Need to get correct quadrant and put it in range -pi to pi
+			if (sinPhi < 0.0)
+			{
+				angleToCompare *= -1.0;
+			}
+			areDoublesEqual(combinedToleranceCompare, phi, angleToCompare, "phi/angle", true);
+
+			//std::cout << "n1: " << norm1.Unit().X() << " " << norm1.Unit().Y() << " " << norm1.Unit().Z() << std::endl;
+			//std::cout << "n2: " << norm2.Unit().X() << " " << norm2.Unit().Y() << " " << norm2.Unit().Z() << std::endl;
+		}
+
+		if (changeAngleRange)
+		{
+			return changeAngleRange_0_to_2pi(phi);
+		}
+		else
+		{
+			return phi;
+		}
 	}
 
 	bool K3PiStudiesUtils::isExactlyEqual(double d1, double d2)
@@ -73,29 +101,9 @@ namespace K3PiStudies
 		gErrorIgnoreLevel = kWarning;
 	}
 
-	/**
-	 * angleRad: angle in radians, may be outside range 0, 2pi
-	 * returns: angle in range 0 to 2pi
-	 */
-	double K3PiStudiesUtils::wrapAngle_to_0_to_2pi(double angleRad)
-	{
-		double wrappedAngle = fmod(angleRad, 2.0 * K3PiStudiesUtils::_PI);
-		if (wrappedAngle < 0.0)
-		{
-			wrappedAngle += 2.0 * K3PiStudiesUtils::_PI;
-		}
-		return wrappedAngle;
-	}
-
 	double K3PiStudiesUtils::radToDeg(double angleRad)
 	{
 		return TMath::RadToDeg() * angleRad;
-	}
-
-	double K3PiStudiesUtils::atan2_0_to_2pi(double y, double x)
-	{
-		double angle = TMath::ATan2(y, x);
-		return changeAngleRange_0_to_2pi(angle);
 	}
 
 	/**
@@ -361,7 +369,8 @@ namespace K3PiStudies
 		double Pi_OS2_D0Fit_PT,
 		double Pi_OS2_D0Fit_ETA,
 		double Pi_OS2_D0Fit_PHI,
-		bool ordered)
+		bool ordered,
+		bool verifyAngles)
 	{
 		TLorentzVector d1_piGoesWithPi, d2_ssPi, d3_k, d4_piGoesWithK;
 		d2_ssPi.SetPtEtaPhiM(Pi_SS_D0Fit_PT, Pi_SS_D0Fit_ETA, Pi_SS_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
@@ -424,14 +433,9 @@ namespace K3PiStudies
 
 		TVector3 n1 = d1_piGoesWithPin.Cross(d2_ssPin);
 		TVector3 n2 = d3_kn.Cross(d4_piGoesWithKn);
-		TVector3 n3 = n1.Unit().Cross(n2.Unit());
 
-		// Calculation of the angle Phi between the planes.
-		double cosp = n1.Unit().Dot(n2.Unit());
-		double sinp = n3.Dot(d3_k4n);
-		double phi = acos(cosp);
-		if (sinp < 0)
-			phi *= -1;
+		// Calculation of the angle Phi between the planes, in range -pi to pi
+		double phi = angleBetweenPlanes(n1.Unit(), n2.Unit(), false, verifyAngles);
 
 		// Vectors in rest fram of their resonance.
 		TLorentzVector d1_piGoesWithPir = d1_piGoesWithPi;
