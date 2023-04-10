@@ -50,6 +50,9 @@ namespace K3PiStudies
 		double cosPhi = cosAngleBetweenPlanes(norm1, norm2);
 		double sinPhi = sinAngleBetweenPlanes(norm1, norm2);
 
+		//std::cout << "cosPhi: " << cosPhi << std::endl;
+		//std::cout << "sinPhi: " << sinPhi << std::endl;
+
 		// ranges from -pi to pi
 		double phi = TMath::ATan2(sinPhi, cosPhi);
 
@@ -65,6 +68,11 @@ namespace K3PiStudies
 
 			//std::cout << "n1: " << norm1.Unit().X() << " " << norm1.Unit().Y() << " " << norm1.Unit().Z() << std::endl;
 			//std::cout << "n2: " << norm2.Unit().X() << " " << norm2.Unit().Y() << " " << norm2.Unit().Z() << std::endl;
+
+			//std::cout << "Angle from Angle =  " << angleToCompare << std::endl;
+			//std::cout << "phi =  " << phi << std::endl;
+			//std::cout << "Angle from Angle (deg) =  " << K3PiStudiesUtils::radToDeg(angleToCompare) << std::endl;
+			//std::cout << "phi (deg) =  " << K3PiStudiesUtils::radToDeg(phi) << std::endl;
 		}
 
 		if (changeAngleRange)
