@@ -17,13 +17,134 @@ namespace K3PiStudies
 	const std::string K3PiStudiesUtils::_D0_FIT_FLAG = "D0_FIT";
 	const std::string K3PiStudiesUtils::_P_FLAG = "P";
 
-	bool K3PiStudiesUtils::areDoublesEqual(double d1, double d2, const std::string &varName, bool printDiff)
+	double K3PiStudiesUtils::cosAngleBetweenPlanes(const TVector3& norm1, const TVector3& norm2)
 	{
-		if (d1 != d2)
+		TVector3 n1Unit = norm1.Unit();
+		TVector3 n2Unit = norm2.Unit();
+
+		double cosPhi = (n1Unit.Dot(n2Unit));
+		return cosPhi;
+	}
+
+	double K3PiStudiesUtils::sinAngleBetweenPlanes(const TVector3& norm1, const TVector3& norm2)
+	{
+		TVector3 n1Unit = norm1.Unit();
+		TVector3 n2Unit = norm2.Unit();
+
+		TVector3 planesPerp = n1Unit.Cross(n2Unit);
+		TVector3 planesPerpUnit = planesPerp.Unit();
+		double sinPhi = planesPerp.Dot(planesPerpUnit);
+		return sinPhi;
+	}
+
+	/**
+ 	* returns angle between planes in range 0 to 2pi
+	* see https://math.stackexchange.com/questions/878785/how-to-find-an-angle-in-range0-360-between-2-vectors
+	*/
+	double K3PiStudiesUtils::angleBetweenPlanes(const TVector3& norm1, const TVector3& norm2)
+	{
+		double cosPhi = cosAngleBetweenPlanes(norm1, norm2);
+		double sinPhi = sinAngleBetweenPlanes(norm1, norm2);
+
+		return K3PiStudiesUtils::atan2_0_to_2pi(sinPhi, cosPhi);	
+	}
+
+	bool K3PiStudiesUtils::isExactlyEqual(double d1, double d2)
+	{
+		return d1 == d2;
+	}
+
+	/**
+	 * From https://stackoverflow.com/a/15012792
+	 */
+	bool K3PiStudiesUtils::combinedToleranceCompare(double x, double y)
+	{
+		double maxXYOne = std::max({1.0, std::fabs(x), std::fabs(y)});
+
+		//std::cout << "maxXYOne: " << maxXYOne << std::endl;
+		//std::cout << "EPS: " << std::numeric_limits<double>::epsilon() * maxXYOne << std::endl;
+		//std::cout << "diff: " << std::fabs(x - y) << std::endl;
+
+		return std::fabs(x - y) <= std::numeric_limits<double>::epsilon() * maxXYOne;
+	}
+
+	void K3PiStudiesUtils::silenceROOTHistSaveMsgs()
+	{
+		gErrorIgnoreLevel = kWarning;
+	}
+
+	/**
+	 * angleRad: angle in radians, may be outside range 0, 2pi
+	 * returns: angle in range 0 to 2pi
+	 */
+	double K3PiStudiesUtils::wrapAngle_to_0_to_2pi(double angleRad)
+	{
+		double wrappedAngle = fmod(angleRad, 2.0 * K3PiStudiesUtils::_PI);
+		if (wrappedAngle < 0.0)
+		{
+			wrappedAngle += 2.0 * K3PiStudiesUtils::_PI;
+		}
+		return wrappedAngle;
+	}
+
+	double K3PiStudiesUtils::radToDeg(double angleRad)
+	{
+		return TMath::RadToDeg() * angleRad;
+	}
+
+	double K3PiStudiesUtils::atan2_0_to_2pi(double y, double x)
+	{
+		double angle = TMath::ATan2(y, x);
+		return changeAngleRange_0_to_2pi(angle);
+	}
+
+	/**
+	 * angle_0_to_2pi: angle in range 0 to 2pi
+	 * returns: angle in range -pi to pi
+	 */
+	double K3PiStudiesUtils::changeAngleRange_neg_pi_to_pi(double angle_0_to_2pi)
+	{
+		if (angle_0_to_2pi > _PI)
+		{
+			return angle_0_to_2pi - 2.0 * _PI;
+		}
+		else
+		{
+			return angle_0_to_2pi;
+		}
+	}
+
+	/**
+	 * angle_neg_pi_to_pi: angle that ranges from -pi to pi
+	 * returns: angle that ranges from 0 to 2pi
+	 */
+	double K3PiStudiesUtils::changeAngleRange_0_to_2pi(double angle_neg_pi_to_pi)
+	{
+		if (angle_neg_pi_to_pi < 0)
+		{
+			return angle_neg_pi_to_pi + 2.0 * K3PiStudiesUtils::_PI;
+		}
+		else
+		{
+			return angle_neg_pi_to_pi;
+		}
+	}
+
+	/**
+	 * isEqualFunc: returns true if the d1, d2 are equal; false otherwise
+	 */
+	bool K3PiStudiesUtils::areDoublesEqual(
+		std::function<bool(double, double)> isEqualFunc,
+		double d1,
+		double d2,
+		const std::string &varName,
+		bool printDiff)
+	{
+		if (!isEqualFunc(d1, d2))
 		{
 			if (printDiff)
 			{
-				std::cout << "Found difference for " << varName << ": " << d1 << ", " << d2 << std::endl;
+				std::cout << "Found difference for " << varName << ": " << d1 << ", " << d2 << "; diff = " << d1-d2 << std::endl;
 			}
 
 			return false;

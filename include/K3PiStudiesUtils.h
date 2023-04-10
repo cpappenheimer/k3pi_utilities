@@ -25,6 +25,20 @@ namespace K3PiStudies
 		}
 	}; // end InvalidDecayError
 
+	struct ComputationError : std::exception
+	{
+		const std::string _msg;
+
+		ComputationError(const std::string &msg) : _msg(msg)
+		{
+		}
+
+		const char *what() const noexcept override
+		{
+			return _msg.c_str();
+		}
+	}; // end ComputationError
+
 	// names for the particles used in the "*D0Fit*" vars in the ntuple
 	enum D0Fit_PNames
 	{
@@ -70,6 +84,12 @@ namespace K3PiStudies
 		~K3PiStudiesUtils() = default;
 		K3PiStudiesUtils &operator=(const K3PiStudiesUtils &copyMe) = default;
 		K3PiStudiesUtils &operator=(K3PiStudiesUtils &&moveMe) = default;
+
+		static double cosAngleBetweenPlanes(const TVector3& norm1, const TVector3& norm2);
+
+		static double sinAngleBetweenPlanes(const TVector3& norm1, const TVector3& norm2);
+
+		static double angleBetweenPlanes(const TVector3& norm1, const TVector3& norm2);
 
 		static float helicity_angle_func(
 			float d0_px,
@@ -352,7 +372,28 @@ namespace K3PiStudies
 			double D0_P2_PE,
 			double D0_P3_PE);
 
-		static bool areDoublesEqual(double d1, double d2, const std::string &varName, bool printDiff);
+		static bool areDoublesEqual(
+		std::function<bool(double, double)> isEqualFunc,
+		double d1,
+		double d2,
+		const std::string &varName,
+		bool printDiff);
+
+		static double changeAngleRange_neg_pi_to_pi(double angle_0_to_2pi);
+
+		static double radToDeg(double angleRad);
+
+		static double atan2_0_to_2pi(double y, double x);
+
+		static double changeAngleRange_0_to_2pi(double angle_neg_pi_to_pi);
+
+		static double wrapAngle_to_0_to_2pi(double angleRad);
+
+		static void silenceROOTHistSaveMsgs();
+
+		static bool combinedToleranceCompare(double x, double y);
+
+		static bool isExactlyEqual(double d1, double d2);
 
 	}; // end K3PiStudiesUtils class
 
@@ -373,14 +414,15 @@ namespace K3PiStudies
 		{
 		}
 
-		int compare(const Phsp4Body& other) const
+		int compare(const Phsp4Body& other, std::function<bool(double, double)> isEqualFunc, int eventNum) const
 		{
+			std::string evt = std::to_string(eventNum);
 			bool isEqual[5];
-			isEqual[0] = K3PiStudiesUtils::areDoublesEqual(this->_m12_MeV, other._m12_MeV, "m12", true);
-			isEqual[1] = K3PiStudiesUtils::areDoublesEqual(this->_m34_MeV, other._m34_MeV, "m34", true);
-			isEqual[2] = K3PiStudiesUtils::areDoublesEqual(this->_cos12, other._cos12, "cos12", true);
-			isEqual[3] = K3PiStudiesUtils::areDoublesEqual(this->_cos34, other._cos34, "cos34", true);
-			isEqual[4] = K3PiStudiesUtils::areDoublesEqual(this->_phi_rad, other._phi_rad, "phi", true);
+			isEqual[0] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_m12_MeV, other._m12_MeV, "Event "+evt+" m12", true);
+			isEqual[1] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_m34_MeV, other._m34_MeV, "Event "+evt+" m34", true);
+			isEqual[2] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_cos12, other._cos12, "Event "+evt+" cos12", true);
+			isEqual[3] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_cos34, other._cos34, "Event "+evt+" cos34", true);
+			isEqual[4] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_phi_rad, other._phi_rad, "Event "+evt+" phi", true);
 
 			int numDiffs = 0;
 			for (int i = 0; i < 5; i++)
