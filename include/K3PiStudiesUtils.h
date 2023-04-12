@@ -77,6 +77,7 @@ namespace K3PiStudies
 		static const std::string _REFIT_FLAG;
 		static const std::string _D0_FIT_FLAG;
 		static const std::string _P_FLAG;
+		static constexpr double _COMPARE_EPS = std::numeric_limits<double>::epsilon();
 
 		K3PiStudiesUtils() = default;
 		K3PiStudiesUtils(const K3PiStudiesUtils &copyMe) = default;
@@ -89,11 +90,12 @@ namespace K3PiStudies
 
 		static double sinAngleBetweenPlanes(const TVector3 &norm1, const TVector3 &norm2);
 
-		static double angleBetweenPlanes(
+		static std::pair<double, double> angleBetweenPlanes(
 			const TVector3 &norm1,
 			const TVector3 &norm2,
 			bool changeAngleRange,
-			bool verifyAngle);
+			bool verifyAngle,
+			bool printDiff);
 
 		static float helicity_angle_func(
 			float d0_px,
@@ -368,7 +370,8 @@ namespace K3PiStudies
 			double Pi_OS2_D0Fit_ETA,
 			double Pi_OS2_D0Fit_PHI,
 			bool ordered,
-			bool verifyAngles);
+			bool verifyAngles,
+			bool printDiff);
 
 		static double getD0Part_PE(
 			int ind,

@@ -38,14 +38,16 @@ namespace K3PiStudies
 	}
 
 	/**
- 	* returns angle between planes in range 0 to 2pi (if changeAngleRange = true) or -pi to pi (if changeAngleRange = false)
-	* see https://math.stackexchange.com/questions/878785/how-to-find-an-angle-in-range0-360-between-2-vectors
+ 	* returns pair with first value = angle between planes in range 0 to 2pi (if changeAngleRange = true) or -pi to pi (if changeAngleRange = false)
+	* see https://math.stackexchange.com/questions/878785/how-to-find-an-angle-in-range0-360-between-2-vectors,
+	* pair second value = diff between .Angle method and our phi calculation if verify angles = true, 0 if verify angles = false
 	*/
-	double K3PiStudiesUtils::angleBetweenPlanes(
+	std::pair<double, double> K3PiStudiesUtils::angleBetweenPlanes(
 		const TVector3& norm1,
 		const TVector3& norm2,
 		bool changeAngleRange,
-		bool verifyAngle)
+		bool verifyAngle,
+		bool printDiff)
 	{
 		double cosPhi = cosAngleBetweenPlanes(norm1, norm2);
 		double sinPhi = sinAngleBetweenPlanes(norm1, norm2);
@@ -55,7 +57,7 @@ namespace K3PiStudies
 
 		// ranges from -pi to pi
 		double phi = TMath::ATan2(sinPhi, cosPhi);
-
+		double angleDiff = 0.0;
 		if (verifyAngle)
 		{
 			double angleToCompare = norm1.Angle(norm2);
@@ -64,7 +66,8 @@ namespace K3PiStudies
 			{
 				angleToCompare *= -1.0;
 			}
-			areDoublesEqual(combinedToleranceCompare, phi, angleToCompare, "phi/angle", true);
+			areDoublesEqual(combinedToleranceCompare, phi, angleToCompare, "phi/angle", printDiff);
+			angleDiff = std::fabs(phi - angleToCompare);
 
 			//std::cout << "n1: " << norm1.Unit().X() << " " << norm1.Unit().Y() << " " << norm1.Unit().Z() << std::endl;
 			//std::cout << "n2: " << norm2.Unit().X() << " " << norm2.Unit().Y() << " " << norm2.Unit().Z() << std::endl;
@@ -77,11 +80,11 @@ namespace K3PiStudies
 
 		if (changeAngleRange)
 		{
-			return changeAngleRange_0_to_2pi(phi);
+			return std::make_pair(changeAngleRange_0_to_2pi(phi), angleDiff);
 		}
 		else
 		{
-			return phi;
+			return std::make_pair(phi, angleDiff);
 		}
 	}
 
@@ -101,7 +104,7 @@ namespace K3PiStudies
 		//std::cout << "EPS: " << std::numeric_limits<double>::epsilon() * maxXYOne << std::endl;
 		//std::cout << "diff: " << std::fabs(x - y) << std::endl;
 
-		return std::fabs(x - y) <= std::numeric_limits<double>::epsilon() * maxXYOne;
+		return std::fabs(x - y) <= _COMPARE_EPS * maxXYOne;
 	}
 
 	void K3PiStudiesUtils::silenceROOTHistSaveMsgs()
@@ -363,6 +366,8 @@ namespace K3PiStudies
 
 	/*
 	 * Function to calculate phase space from John's apply_full_selection.py code
+	 * returns vector with entries: {m12, m34, cos1, cos2, phi, m13, phiAngleDiff}
+	 * See angleBetweenPlanes method for documentation for phiAngleDiff
 	 */
 	std::vector<double> K3PiStudiesUtils::calc_phsp(
 		double K_D0Fit_PT,
@@ -378,7 +383,8 @@ namespace K3PiStudies
 		double Pi_OS2_D0Fit_ETA,
 		double Pi_OS2_D0Fit_PHI,
 		bool ordered,
-		bool verifyAngles)
+		bool verifyAngles,
+		bool printDiff)
 	{
 		TLorentzVector d1_piGoesWithPi, d2_ssPi, d3_k, d4_piGoesWithK;
 		d2_ssPi.SetPtEtaPhiM(Pi_SS_D0Fit_PT, Pi_SS_D0Fit_ETA, Pi_SS_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
@@ -443,7 +449,9 @@ namespace K3PiStudies
 		TVector3 n2 = d3_kn.Cross(d4_piGoesWithKn);
 
 		// Calculation of the angle Phi between the planes, in range -pi to pi
-		double phi = angleBetweenPlanes(n1.Unit(), n2.Unit(), false, verifyAngles);
+		std::pair<double, double> phiCalc = angleBetweenPlanes(n1.Unit(), n2.Unit(), false, verifyAngles, printDiff);
+		double phi = phiCalc.first;
+		double phiAngleDiff = phiCalc.second;
 
 		// Vectors in rest fram of their resonance.
 		TLorentzVector d1_piGoesWithPir = d1_piGoesWithPi;
@@ -457,7 +465,7 @@ namespace K3PiStudies
 		double cos1 = d1_piGoesWithPi2n.Dot(d1_piGoesWithPirn);
 		double cos2 = d3_k4n.Dot(d3_krn);
 
-		std::vector<double> vars = {m12, m34, cos1, cos2, phi, m13};
+		std::vector<double> vars = {m12, m34, cos1, cos2, phi, m13, phiAngleDiff};
 		return vars;
 	}
 
