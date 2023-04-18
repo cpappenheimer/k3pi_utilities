@@ -2,6 +2,8 @@
 
 #include <TLorentzVector.h>
 #include <Math/Vector4D.h>
+#include <TStyle.h>
+#include <TColor.h>
 
 #include "K3PiStudiesUtils.h"
 
@@ -17,75 +19,46 @@ namespace K3PiStudies
 	const std::string K3PiStudiesUtils::_D0_FIT_FLAG = "D0_FIT";
 	const std::string K3PiStudiesUtils::_P_FLAG = "P";
 
-	double K3PiStudiesUtils::cosAngleBetweenPlanes(const TVector3& norm1, const TVector3& norm2)
+	void K3PiStudiesUtils::changeToRainbowPalette()
 	{
-		TVector3 n1Unit = norm1.Unit();
-		TVector3 n2Unit = norm2.Unit();
-
-		double cosPhi = (n1Unit.Dot(n2Unit));
-		return cosPhi;
-	}
-
-	double K3PiStudiesUtils::sinAngleBetweenPlanes(const TVector3& norm1, const TVector3& norm2)
-	{
-		TVector3 n1Unit = norm1.Unit();
-		TVector3 n2Unit = norm2.Unit();
-
-		TVector3 planesPerp = n1Unit.Cross(n2Unit);
-		TVector3 planesPerpUnit = planesPerp.Unit();
-		double sinPhi = planesPerp.Dot(planesPerpUnit);
-		return sinPhi;
+		gStyle->SetPalette(kRainBow);
 	}
 
 	/**
- 	* returns pair with first value = angle between planes in range 0 to 2pi (if changeAngleRange = true) or -pi to pi (if changeAngleRange = false)
-	* see https://math.stackexchange.com/questions/878785/how-to-find-an-angle-in-range0-360-between-2-vectors,
-	* pair second value = diff between .Angle method and our phi calculation if verify angles = true, 0 if verify angles = false
-	*/
-	std::pair<double, double> K3PiStudiesUtils::angleBetweenPlanes(
-		const TVector3& norm1,
-		const TVector3& norm2,
-		bool changeAngleRange,
-		bool verifyAngle,
+	 * v1v2AngleIsNegPiToPi: true if v1v2Angle ranges from -pi to pi, false if it ranges from 0 to 2 pi
+	 * returns diff between .Angle method and our angle calculation (v1v2Angle)
+	 */
+	double K3PiStudiesUtils::verifyAngle(
+		const TVector3 &v1,
+		const TVector3 &v2,
+		double v1v2Angle,
+		bool v1v2AngleIsNegPiToPi,
+		const std::string &angleName,
 		bool printDiff)
 	{
-		double cosPhi = cosAngleBetweenPlanes(norm1, norm2);
-		double sinPhi = sinAngleBetweenPlanes(norm1, norm2);
-
-		//std::cout << "cosPhi: " << cosPhi << std::endl;
-		//std::cout << "sinPhi: " << sinPhi << std::endl;
-
-		// ranges from -pi to pi
-		double phi = TMath::ATan2(sinPhi, cosPhi);
 		double angleDiff = 0.0;
-		if (verifyAngle)
+
+		double angleToCompare = v1.Angle(v2);
+		// .Angle uses acos, which ranges from 0 to pi. Need to get correct quadrant and put it in range -pi to pi
+		if (sin(v1v2Angle) < 0.0)
 		{
-			double angleToCompare = norm1.Angle(norm2);
-			// .Angle uses acos, which ranges from 0 to pi. Need to get correct quadrant and put it in range -pi to pi
-			if (sinPhi < 0.0)
-			{
-				angleToCompare *= -1.0;
-			}
-			areDoublesEqual(combinedToleranceCompare, phi, angleToCompare, "phi/angle", printDiff);
-			angleDiff = std::fabs(phi - angleToCompare);
-
-			//std::cout << "n1: " << norm1.Unit().X() << " " << norm1.Unit().Y() << " " << norm1.Unit().Z() << std::endl;
-			//std::cout << "n2: " << norm2.Unit().X() << " " << norm2.Unit().Y() << " " << norm2.Unit().Z() << std::endl;
-
-			//std::cout << "Angle from Angle =  " << angleToCompare << std::endl;
-			//std::cout << "phi =  " << phi << std::endl;
-			//std::cout << "Angle from Angle (deg) =  " << K3PiStudiesUtils::radToDeg(angleToCompare) << std::endl;
-			//std::cout << "phi (deg) =  " << K3PiStudiesUtils::radToDeg(phi) << std::endl;
+			angleToCompare *= -1.0;
 		}
 
-		if (changeAngleRange)
+		if (!v1v2AngleIsNegPiToPi)
 		{
-			return std::make_pair(changeAngleRange_0_to_2pi(phi), angleDiff);
+			angleToCompare = changeAngleRange_0_to_2pi(angleToCompare);
 		}
-		else
-		{
-			return std::make_pair(phi, angleDiff);
-		}
+
+		//std::cout << angleName << ": " << v1v2Angle << std::endl;
+		//std::cout << "From .Angle(): " << angleToCompare << std::endl;
+		//std::cout << angleName << " (deg) : " << radToDeg(v1v2Angle) << std::endl;
+		//std::cout << "From .Angle() (deg) : " << radToDeg(angleToCompare) << std::endl;
+
+		areDoublesEqual(combinedToleranceCompare, v1v2Angle, angleToCompare, angleName + " / .Angle()", printDiff);
+		angleDiff = std::fabs(v1v2Angle - angleToCompare);
+
+		return angleDiff;
 	}
 
 	bool K3PiStudiesUtils::isExactlyEqual(double d1, double d2)
@@ -100,9 +73,9 @@ namespace K3PiStudies
 	{
 		double maxXYOne = std::max({1.0, std::fabs(x), std::fabs(y)});
 
-		//std::cout << "maxXYOne: " << maxXYOne << std::endl;
-		//std::cout << "EPS: " << std::numeric_limits<double>::epsilon() * maxXYOne << std::endl;
-		//std::cout << "diff: " << std::fabs(x - y) << std::endl;
+		// std::cout << "maxXYOne: " << maxXYOne << std::endl;
+		// std::cout << "EPS: " << std::numeric_limits<double>::epsilon() * maxXYOne << std::endl;
+		// std::cout << "diff: " << std::fabs(x - y) << std::endl;
 
 		return std::fabs(x - y) <= _COMPARE_EPS * maxXYOne;
 	}
@@ -139,8 +112,9 @@ namespace K3PiStudies
 	 */
 	double K3PiStudiesUtils::changeAngleRange_0_to_2pi(double angle_neg_pi_to_pi)
 	{
-		if (angle_neg_pi_to_pi < 0)
+		if (angle_neg_pi_to_pi < 0.0)
 		{
+			// std::cout << "Neg phi" << std::endl;
 			return angle_neg_pi_to_pi + 2.0 * K3PiStudiesUtils::_PI;
 		}
 		else
@@ -163,7 +137,7 @@ namespace K3PiStudies
 		{
 			if (printDiff)
 			{
-				std::cout << "Found difference for " << varName << ": " << d1 << ", " << d2 << "; diff = " << d1-d2 << std::endl;
+				std::cout << "Found difference for " << varName << ": " << d1 << ", " << d2 << "; diff = " << d1 - d2 << std::endl;
 			}
 
 			return false;
@@ -447,11 +421,14 @@ namespace K3PiStudies
 
 		TVector3 n1 = d1_piGoesWithPin.Cross(d2_ssPin);
 		TVector3 n2 = d3_kn.Cross(d4_piGoesWithKn);
+		TVector3 n3 = n1.Unit().Cross(n2.Unit());
 
 		// Calculation of the angle Phi between the planes, in range -pi to pi
-		std::pair<double, double> phiCalc = angleBetweenPlanes(n1.Unit(), n2.Unit(), false, verifyAngles, printDiff);
-		double phi = phiCalc.first;
-		double phiAngleDiff = phiCalc.second;
+		double cosp = n1.Unit().Dot(n2.Unit());
+		double sinp = n3.Dot(d3_k4n);
+		double phi = TMath::ATan2(sinp, cosp);
+
+		double phiDiff = (verifyAngles) ? K3PiStudiesUtils::verifyAngle(n1.Unit(), n2.Unit(), phi, true, "phi", false) : 0.0;
 
 		// Vectors in rest fram of their resonance.
 		TLorentzVector d1_piGoesWithPir = d1_piGoesWithPi;
@@ -465,7 +442,7 @@ namespace K3PiStudies
 		double cos1 = d1_piGoesWithPi2n.Dot(d1_piGoesWithPirn);
 		double cos2 = d3_k4n.Dot(d3_krn);
 
-		std::vector<double> vars = {m12, m34, cos1, cos2, phi, m13, phiAngleDiff};
+		std::vector<double> vars = {m12, m34, cos1, cos2, phi, m13, phiDiff};
 		return vars;
 	}
 

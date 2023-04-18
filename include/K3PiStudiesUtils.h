@@ -86,16 +86,15 @@ namespace K3PiStudies
 		K3PiStudiesUtils &operator=(const K3PiStudiesUtils &copyMe) = default;
 		K3PiStudiesUtils &operator=(K3PiStudiesUtils &&moveMe) = default;
 
-		static double cosAngleBetweenPlanes(const TVector3 &norm1, const TVector3 &norm2);
+		static void changeToRainbowPalette();
 
-		static double sinAngleBetweenPlanes(const TVector3 &norm1, const TVector3 &norm2);
-
-		static std::pair<double, double> angleBetweenPlanes(
-			const TVector3 &norm1,
-			const TVector3 &norm2,
-			bool changeAngleRange,
-			bool verifyAngle,
-			bool printDiff);
+		static double verifyAngle(
+		const TVector3& v1,
+		const TVector3& v2,
+		double v1v2Angle,
+		bool v1v2AngleIsNegPiToPi,
+		const std::string& angleName,
+		bool printDiff);
 
 		static float helicity_angle_func(
 			float d0_px,
@@ -408,25 +407,39 @@ namespace K3PiStudies
 		const double _cos12;
 		const double _cos34;
 		const double _phi_rad;
+		/** difference between phi values we computed when using 2 different methods to calculate (use to check for calculation errors) */
+		const double _phi_diff;
+
+		// alternative sets of variables
+		const double _m14_MeV;
+		const double _m32_MeV;
+		const double _phiA_rad;
+		/** difference between phiA values we computed when using 2 different methods to calculate (use to check for calculation errors) */
+		const double _phiA_diff;
 
 		Phsp4Body(
 			double m12_MeV,
 			double m34_MeV,
 			double cos12,
 			double cos34,
-			double phi_rad) : _m12_MeV(m12_MeV), _m34_MeV(m34_MeV), _cos12(cos12), _cos34(cos34), _phi_rad(phi_rad)
+			double phi_rad,
+			double phi_diff,
+			double m14_MeV,
+			double m32_MeV,
+			double phiA_rad,
+			double phiA_diff) : _m12_MeV(m12_MeV), _m34_MeV(m34_MeV), _cos12(cos12), _cos34(cos34), _phi_rad(phi_rad), _phi_diff(phi_diff), _m14_MeV(m14_MeV), _m32_MeV(m32_MeV), _phiA_rad(phiA_rad), _phiA_diff(phiA_diff)
 		{
 		}
 
-		int compare(const Phsp4Body &other, std::function<bool(double, double)> isEqualFunc, int eventNum) const
+		int compare5(const Phsp4Body &other, std::function<bool(double, double)> isEqualFunc, int eventNum, bool printSanityChecks) const
 		{
 			std::string evt = std::to_string(eventNum);
 			bool isEqual[5];
-			isEqual[0] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_m12_MeV, other._m12_MeV, "Event " + evt + " m12", true);
-			isEqual[1] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_m34_MeV, other._m34_MeV, "Event " + evt + " m34", true);
-			isEqual[2] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_cos12, other._cos12, "Event " + evt + " cos12", true);
-			isEqual[3] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_cos34, other._cos34, "Event " + evt + " cos34", true);
-			isEqual[4] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_phi_rad, other._phi_rad, "Event " + evt + " phi", true);
+			isEqual[0] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_m12_MeV, other._m12_MeV, "Event " + evt + " m12", printSanityChecks);
+			isEqual[1] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_m34_MeV, other._m34_MeV, "Event " + evt + " m34", printSanityChecks);
+			isEqual[2] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_cos12, other._cos12, "Event " + evt + " cos12", printSanityChecks);
+			isEqual[3] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_cos34, other._cos34, "Event " + evt + " cos34", printSanityChecks);
+			isEqual[4] = K3PiStudiesUtils::areDoublesEqual(isEqualFunc, this->_phi_rad, other._phi_rad, "Event " + evt + " phi", printSanityChecks);
 
 			int numDiffs = 0;
 			for (int i = 0; i < 5; i++)
