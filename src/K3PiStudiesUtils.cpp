@@ -50,10 +50,10 @@ namespace K3PiStudies
 			angleToCompare = changeAngleRange_0_to_2pi(angleToCompare);
 		}
 
-		//std::cout << angleName << ": " << v1v2Angle << std::endl;
-		//std::cout << "From .Angle(): " << angleToCompare << std::endl;
-		//std::cout << angleName << " (deg) : " << radToDeg(v1v2Angle) << std::endl;
-		//std::cout << "From .Angle() (deg) : " << radToDeg(angleToCompare) << std::endl;
+		// std::cout << angleName << ": " << v1v2Angle << std::endl;
+		// std::cout << "From .Angle(): " << angleToCompare << std::endl;
+		// std::cout << angleName << " (deg) : " << radToDeg(v1v2Angle) << std::endl;
+		// std::cout << "From .Angle() (deg) : " << radToDeg(angleToCompare) << std::endl;
 
 		areDoublesEqual(combinedToleranceCompare, v1v2Angle, angleToCompare, angleName + " / .Angle()", printDiff);
 		angleDiff = std::fabs(v1v2Angle - angleToCompare);
@@ -341,7 +341,6 @@ namespace K3PiStudies
 	/*
 	 * Function to calculate phase space from John's apply_full_selection.py code
 	 * returns vector with entries: {m12, m34, cos1, cos2, phi, m13, phiAngleDiff}
-	 * See angleBetweenPlanes method for documentation for phiAngleDiff
 	 */
 	std::vector<double> K3PiStudiesUtils::calc_phsp(
 		double K_D0Fit_PT,
@@ -356,7 +355,7 @@ namespace K3PiStudies
 		double Pi_OS2_D0Fit_PT,
 		double Pi_OS2_D0Fit_ETA,
 		double Pi_OS2_D0Fit_PHI,
-		bool ordered,
+		bool pi1GoesWithK,
 		bool verifyAngles,
 		bool printDiff)
 	{
@@ -365,37 +364,15 @@ namespace K3PiStudies
 		d3_k.SetPtEtaPhiM(K_D0Fit_PT, K_D0Fit_ETA, K_D0Fit_PHI, K3PiStudiesUtils::_KAON_MASS);
 
 		// figure out which pi to associate with k
-		if (ordered)
-		{
-			TLorentzVector kpi_1, kpi_2;
-			kpi_1.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
-			kpi_2.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
-			double m13 = (d3_k + kpi_1).M();
-			double m34 = (d3_k + kpi_2).M();
-			if (m13 > m34)
-			{ // case where kpi2 goes with k
-				d1_piGoesWithPi.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
-				d4_piGoesWithK.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
-			}
-			else
-			{ // case where kpi1 goes with k
-				d1_piGoesWithPi.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
-				d4_piGoesWithK.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
-			}
+		if (pi1GoesWithK)
+		{ // case where kpi1 goes with k
+			d1_piGoesWithPi.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
+			d4_piGoesWithK.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
 		}
 		else
-		{
-			// Randomise the assignment of d2_ssPi and d4_piGoesWithK, which should be the two OS pions.
-			if (((double)std::rand() / (RAND_MAX)) < 0.5) // FIXME is this thread safe? it has to be to work with rdataframe // FIXME seed
-			{
-				d1_piGoesWithPi.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
-				d4_piGoesWithK.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
-			}
-			else
-			{
-				d4_piGoesWithK.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
-				d1_piGoesWithPi.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
-			}
+		{ // case where kpi2 goes with k
+			d1_piGoesWithPi.SetPtEtaPhiM(Pi_OS1_D0Fit_PT, Pi_OS1_D0Fit_ETA, Pi_OS1_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
+			d4_piGoesWithK.SetPtEtaPhiM(Pi_OS2_D0Fit_PT, Pi_OS2_D0Fit_ETA, Pi_OS2_D0Fit_PHI, K3PiStudiesUtils::_PION_MASS);
 		}
 
 		// Boost everything to D0 restframe

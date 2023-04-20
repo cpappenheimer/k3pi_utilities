@@ -368,7 +368,7 @@ namespace K3PiStudies
 			double Pi_OS2_D0Fit_PT,
 			double Pi_OS2_D0Fit_ETA,
 			double Pi_OS2_D0Fit_PHI,
-			bool ordered,
+			bool pi1GoesWithK,
 			bool verifyAngles,
 			bool printDiff);
 
