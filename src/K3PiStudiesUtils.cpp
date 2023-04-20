@@ -19,6 +19,49 @@ namespace K3PiStudies
 	const std::string K3PiStudiesUtils::_D0_FIT_FLAG = "D0_FIT";
 	const std::string K3PiStudiesUtils::_P_FLAG = "P";
 
+	/**
+	 * See Eq. 42 in Kutschke's An Angular Distribution Cookbook
+	 * returns angle between the (4,5) decay plane and the (6,7) decay plane in mother rest frame, ranging from -pi to pi
+	*/
+	double K3PiStudiesUtils::angleBetweenDecayPlanesKutschke(
+		const TVector3& d4_motherRestFrame,
+		const TVector3& d5_motherRestFrame,
+		const TVector3& d6_motherRestFrame,
+		const TVector3& d7_motherRestFrame)
+	{
+		TVector3 nPrime = ( d4_motherRestFrame.Unit() ).Cross( d5_motherRestFrame.Unit() );
+		TVector3 nHatPrime = nPrime.Unit();
+
+		TVector3 nDoublePrime = ( d6_motherRestFrame.Unit() ).Cross( d7_motherRestFrame.Unit() );
+		TVector3 nHatDoublePrime = nDoublePrime.Unit();
+
+		TVector3 p2Hat = (d4_motherRestFrame + d5_motherRestFrame).Unit();
+
+		double cosPhi = nHatDoublePrime.Dot(nHatPrime);
+		double sinPhi = ( nHatDoublePrime.Cross(nHatPrime) ).Dot(p2Hat);
+
+		return TMath::ATan2(sinPhi, cosPhi);
+	}
+
+	TString K3PiStudiesUtils::makeTitleStr(
+		const TString& title,
+		const TString& xLabel,
+		const TString& yLabel)
+	{
+		return title + ";" + xLabel + ";" + yLabel;
+	}
+
+	TString K3PiStudiesUtils::makeYAxisLabel(
+		int numBins,
+		double axisMin,
+		double axisMax,
+		const TString& unit)
+	{
+		double axisLength = axisMax - axisMin;
+		double binSize = numBins / axisLength;
+		return "Events / " + std::to_string(binSize) + " " + unit;
+	}
+
 	void K3PiStudiesUtils::changeToRainbowPalette()
 	{
 		gStyle->SetPalette(kRainBow);

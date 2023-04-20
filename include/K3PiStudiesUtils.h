@@ -86,6 +86,23 @@ namespace K3PiStudies
 		K3PiStudiesUtils &operator=(const K3PiStudiesUtils &copyMe) = default;
 		K3PiStudiesUtils &operator=(K3PiStudiesUtils &&moveMe) = default;
 
+		static double angleBetweenDecayPlanesKutschke(
+			const TVector3& d4_motherRestFrame,
+			const TVector3& d5_motherRestFrame,
+			const TVector3& d6_motherRestFrame,
+			const TVector3& d7_motherRestFrame);
+
+		static TString makeTitleStr(
+		const TString& title,
+		const TString& xLabel,
+		const TString& yLabel);
+
+		static TString makeYAxisLabel(
+		int numBins,
+		double axisMin,
+		double axisMax,
+		const TString& unit);
+
 		static void changeToRainbowPalette();
 
 		static double verifyAngle(
@@ -407,15 +424,19 @@ namespace K3PiStudies
 		const double _cos12;
 		const double _cos34;
 		const double _phi_rad;
-		/** difference between phi values we computed when using 2 different methods to calculate (use to check for calculation errors) */
+
+		/** difference between phi values we computed when using 2 different methods (ours and TVector3's .Angle()) to calculate (use to check for calculation errors) */
 		const double _phi_diff;
+		const double _phiA_diff;
 
 		// alternative sets of variables
 		const double _m14_MeV;
 		const double _m32_MeV;
 		const double _phiA_rad;
-		/** difference between phiA values we computed when using 2 different methods to calculate (use to check for calculation errors) */
-		const double _phiA_diff;
+
+		/** difference between phi values we computed when using 2 different methods (ours and Eq. 42 in Kutschke's An Angular Distribution Cookbook) to calculate (use to check for calculation errors) */
+		const double _phi_diff2;
+		const double _phiA_diff2;
 
 		Phsp4Body(
 			double m12_MeV,
@@ -427,7 +448,9 @@ namespace K3PiStudies
 			double m14_MeV,
 			double m32_MeV,
 			double phiA_rad,
-			double phiA_diff) : _m12_MeV(m12_MeV), _m34_MeV(m34_MeV), _cos12(cos12), _cos34(cos34), _phi_rad(phi_rad), _phi_diff(phi_diff), _m14_MeV(m14_MeV), _m32_MeV(m32_MeV), _phiA_rad(phiA_rad), _phiA_diff(phiA_diff)
+			double phiA_diff,
+			double phi_diff2,
+			double phiA_diff2) : _m12_MeV(m12_MeV), _m34_MeV(m34_MeV), _cos12(cos12), _cos34(cos34), _phi_rad(phi_rad), _phi_diff(phi_diff), _m14_MeV(m14_MeV), _m32_MeV(m32_MeV), _phiA_rad(phiA_rad), _phiA_diff(phiA_diff), _phi_diff2(phi_diff2), _phiA_diff2(phi_diff2)
 		{
 		}
 
