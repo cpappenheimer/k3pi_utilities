@@ -4,6 +4,11 @@
 #include <Math/Vector4D.h>
 #include <TStyle.h>
 #include <TColor.h>
+#include <TLegend.h>
+#include <TPaveText.h>
+#include <TCanvas.h>
+
+#include <boost/algorithm/string.hpp>
 
 #include "K3PiStudiesUtils.h"
 
@@ -19,34 +24,225 @@ namespace K3PiStudies
 	const std::string K3PiStudiesUtils::_D0_FIT_FLAG = "D0_FIT";
 	const std::string K3PiStudiesUtils::_P_FLAG = "P";
 
+	void K3PiStudiesUtils::makeTLegendBkgTransparent(TLegend& leg)
+	{
+		leg.SetBorderSize(0);
+		leg.SetFillColorAlpha(kWhite, 0.0);
+	}
+
+	void K3PiStudiesUtils::makeTPaveTextBkgTransparent(TPaveText& pt)
+	{
+		pt.SetFillColorAlpha(kWhite, 0.0);
+	}
+
+	std::string K3PiStudiesUtils::printRegionBoundsDeltaM(const std::string& regionName)
+	{
+		double upperBound = 0.0;
+		double lowerBound = 0.0;
+		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		{
+			lowerBound = -1.0*std::numeric_limits<double>::infinity();
+			upperBound = std::numeric_limits<double>::infinity();
+		}
+		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		{
+			lowerBound = _SIG_REGION_LOW_DELTAM_BOUND_MEV;
+			upperBound = _SIG_REGION_HIGH_DELTAM_BOUND_MEV;
+		}
+		else
+		{
+			std::cout << "Unknown region " << regionName << "!" << std::endl;
+			lowerBound = std::numeric_limits<double>::quiet_NaN();
+			upperBound = std::numeric_limits<double>::quiet_NaN();
+		}
+
+		return std::to_string(lowerBound) + " <= delta M <= " + std::to_string(upperBound) + " [MeV]";
+	}
+
+	std::string K3PiStudiesUtils::printRegionBoundsMD0(const std::string& regionName)
+	{
+		double upperBound = 0.0;
+		double lowerBound = 0.0;
+		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		{
+			lowerBound = -1.0*std::numeric_limits<double>::infinity();
+			upperBound = std::numeric_limits<double>::infinity();
+		}
+		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		{
+			lowerBound = _SIG_REGION_LOW_MD0_BOUND_MEV;
+			upperBound = _SIG_REGION_HIGH_MD0_BOUND_MEV;
+		}
+		else
+		{
+			std::cout << "Unknown region " << regionName << "!" << std::endl;
+			lowerBound = std::numeric_limits<double>::quiet_NaN();
+			upperBound = std::numeric_limits<double>::quiet_NaN();
+		}
+
+		return std::to_string(lowerBound) + " <= m(D0) <= " + std::to_string(upperBound) + " [MeV]";
+	}
+
+	/**
+	 * returns a pair where pair.first = the lower limit to use on a delta m axis, pair.second = the upper limit to use on a delta m axis
+	*/
+	std::pair<double,double> K3PiStudiesUtils::getRegionAxisBoundsDeltaMMeV(const std::string& regionName)
+	{
+		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		{
+			return std::make_pair(_ALL_REGS_DELTAM_AXIS_MIN_MEV, _ALL_REGS_DELTAM_AXIS_MAX_MEV);
+		}
+		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		{
+			return std::make_pair(_SIG_REGION_LOW_DELTAM_BOUND_MEV, _SIG_REGION_HIGH_DELTAM_BOUND_MEV);
+		}
+		else
+		{
+			std::cout << "Unknown region " << regionName << "!" << std::endl;
+			return std::make_pair(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN());
+		}
+	}
+
+	/**
+	 * returns a pair where pair.first = the lower limit to use on a D0 mass axis, pair.second = the upper limit to use on a D0 mass axis
+	*/
+	std::pair<double,double> K3PiStudiesUtils::getRegionAxisBoundsMD0MeV(const std::string& regionName)
+	{
+		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		{
+			return std::make_pair(_ALL_REGS_D0_MASS_AXIS_MIN_MEV, _ALL_REGS_D0_MASS_AXIS_MAX_MEV);
+		}
+		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		{
+			return std::make_pair(_SIG_REGION_LOW_MD0_BOUND_MEV, _SIG_REGION_HIGH_MD0_BOUND_MEV);
+		}
+		else
+		{
+			std::cout << "Unknown region " << regionName << "!" << std::endl;
+			return std::make_pair(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN());
+		}
+	}
+
+	bool K3PiStudiesUtils::isInDeltaMRegion(
+		const std::string& regionName,
+		double deltaMMeV)
+	{
+		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		{
+			return true;
+		}
+		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		{
+			return deltaMMeV >= _SIG_REGION_LOW_DELTAM_BOUND_MEV && deltaMMeV <= _SIG_REGION_HIGH_DELTAM_BOUND_MEV;
+		}
+		else
+		{
+			std::cout << "Unknown region " << regionName << "!" << std::endl;
+			return false;
+		}
+	}
+
+	bool K3PiStudiesUtils::isInD0MassRegion(
+		const std::string& regionName,
+		double d0MassMeV)
+	{
+		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		{
+			return true;
+		}
+		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		{
+			return d0MassMeV >= _SIG_REGION_LOW_MD0_BOUND_MEV && d0MassMeV <= _SIG_REGION_HIGH_MD0_BOUND_MEV;
+		}
+		else
+		{
+			std::cout << "Unknown region " << regionName << "!" << std::endl;
+			return false;
+		}
+	}
+
+	void K3PiStudiesUtils::makeNormalizedComparisonPlot(
+		TH1* const h1,
+		TH1* const h2,
+		const TString& legLine1,
+		const TString& legLine2,
+		bool addNumEntries,
+		const TString& saveName)
+	{
+		const unsigned int n1 = h1->GetEntries();
+		const unsigned int n2 = h2->GetEntries();
+		if (n1 == 0 || n2 == 0)
+		{
+			std::cout << "WARNING: For " << saveName << ", h1 or h2 has 0 entries. Cannot make comparison histogram!" << std::endl;
+			return;
+		}
+
+		TCanvas c1;
+	
+		h1->Scale(1.0/h1->Integral());
+		h2->Scale(1.0/h2->Integral());
+
+		h1->SetLineColor(kBlue);
+		h1->SetLineWidth(2);
+		h1->Draw("HIST");
+
+		h2->SetLineColor(kRed+1);
+		h2->SetLineWidth(2);
+		h2->Draw("HIST SAME");
+
+		TLegend leg(0.12, 0.76, 0.32, 0.89);
+		makeTLegendBkgTransparent(leg);
+		leg.AddEntry(h1, legLine1, "L");
+		leg.AddEntry(h2, legLine2, "L");
+		leg.Draw("SAME");
+
+		if (addNumEntries)
+		{
+			TString e1 = std::to_string(n1);
+			TString e2 = std::to_string(n2);
+
+			TPaveText pt1(0.60, 0.8, 0.9, 0.9, "NDC"); // NDC sets coords
+			makeTPaveTextBkgTransparent(pt1);
+			pt1.AddText("n("+legLine1+") = "+e1);
+			pt1.AddText("n("+legLine2+") = "+e2);
+			pt1.Draw("SAME");
+
+			c1.SaveAs(saveName);
+		}
+		else
+		{
+			c1.SaveAs(saveName);
+		}
+	}
+
 	/**
 	 * See Eq. 42 in Kutschke's An Angular Distribution Cookbook
 	 * returns angle between the (4,5) decay plane and the (6,7) decay plane in mother rest frame, ranging from -pi to pi
-	*/
+	 */
 	double K3PiStudiesUtils::angleBetweenDecayPlanesKutschke(
-		const TVector3& d4_motherRestFrame,
-		const TVector3& d5_motherRestFrame,
-		const TVector3& d6_motherRestFrame,
-		const TVector3& d7_motherRestFrame)
+		const TVector3 &d4_motherRestFrame,
+		const TVector3 &d5_motherRestFrame,
+		const TVector3 &d6_motherRestFrame,
+		const TVector3 &d7_motherRestFrame)
 	{
-		TVector3 nPrime = ( d4_motherRestFrame.Unit() ).Cross( d5_motherRestFrame.Unit() );
+		TVector3 nPrime = (d4_motherRestFrame.Unit()).Cross(d5_motherRestFrame.Unit());
 		TVector3 nHatPrime = nPrime.Unit();
 
-		TVector3 nDoublePrime = ( d6_motherRestFrame.Unit() ).Cross( d7_motherRestFrame.Unit() );
+		TVector3 nDoublePrime = (d6_motherRestFrame.Unit()).Cross(d7_motherRestFrame.Unit());
 		TVector3 nHatDoublePrime = nDoublePrime.Unit();
 
 		TVector3 p2Hat = (d4_motherRestFrame + d5_motherRestFrame).Unit();
 
 		double cosPhi = nHatDoublePrime.Dot(nHatPrime);
-		double sinPhi = ( nHatDoublePrime.Cross(nHatPrime) ).Dot(p2Hat);
+		double sinPhi = (nHatDoublePrime.Cross(nHatPrime)).Dot(p2Hat);
 
 		return TMath::ATan2(sinPhi, cosPhi);
 	}
 
 	TString K3PiStudiesUtils::makeTitleStr(
-		const TString& title,
-		const TString& xLabel,
-		const TString& yLabel)
+		const TString &title,
+		const TString &xLabel,
+		const TString &yLabel)
 	{
 		return title + ";" + xLabel + ";" + yLabel;
 	}
@@ -55,11 +251,15 @@ namespace K3PiStudies
 		int numBins,
 		double axisMin,
 		double axisMax,
-		const TString& unit)
+		const TString &unit,
+		bool normalizedPlot)
 	{
 		double axisLength = axisMax - axisMin;
-		double binSize = numBins / axisLength;
-		return "Events / " + std::to_string(binSize) + " " + unit;
+		double binSize = axisLength / numBins;
+		
+		TString yType = (normalizedPlot) ? "Fraction" : "Events";
+
+		return yType + " / " + std::to_string(binSize) + " " + unit;
 	}
 
 	void K3PiStudiesUtils::changeToRainbowPalette()

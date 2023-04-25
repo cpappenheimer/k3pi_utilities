@@ -7,6 +7,7 @@
 #include <TMath.h>
 #include <TLorentzVector.h>
 #include <ROOT/RVec.hxx>
+#include <TH1.h>
 
 namespace K3PiStudies
 {
@@ -60,6 +61,17 @@ namespace K3PiStudies
 	class K3PiStudiesUtils final
 	{
 	public:
+		static inline const std::string _ALL_REGION_FLAG = "ALL";
+		static inline const std::string _SIG_REGION_FLAG = "SIGNAL";
+		static constexpr double _DELTAM_PDG_MEV = 145.4258;
+		static constexpr double _SIG_REGION_LOW_MD0_BOUND_MEV = 1850;
+		static constexpr double _SIG_REGION_HIGH_MD0_BOUND_MEV = 1882;
+		static constexpr double _SIG_REGION_LOW_DELTAM_BOUND_MEV = _DELTAM_PDG_MEV - 0.7;
+		static constexpr double _SIG_REGION_HIGH_DELTAM_BOUND_MEV = _DELTAM_PDG_MEV + 0.7;
+		static constexpr double _ALL_REGS_D0_MASS_AXIS_MIN_MEV = 1800.0;
+		static constexpr double _ALL_REGS_D0_MASS_AXIS_MAX_MEV = 1920.0;
+		static constexpr double _ALL_REGS_DELTAM_AXIS_MIN_MEV = 138.0;
+		static constexpr double _ALL_REGS_DELTAM_AXIS_MAX_MEV = 158.0;
 		static const double _C_M_PER_SEC;
 		static constexpr double _MM_TO_M = 1.0 / 1000.0;
 		static const double _SEC_TO_NS;
@@ -86,32 +98,57 @@ namespace K3PiStudies
 		K3PiStudiesUtils &operator=(const K3PiStudiesUtils &copyMe) = default;
 		K3PiStudiesUtils &operator=(K3PiStudiesUtils &&moveMe) = default;
 
+		static void makeTLegendBkgTransparent(TLegend& leg);
+
+		static void makeTPaveTextBkgTransparent(TPaveText& pt);
+
+		static std::pair<double,double> getRegionAxisBoundsDeltaMMeV(const std::string& regionName);
+
+		static std::pair<double,double> getRegionAxisBoundsMD0MeV(const std::string& regionName);
+
+		static bool isInDeltaMRegion(const std::string& regionName, double deltaMMeV);
+
+		static bool isInD0MassRegion(const std::string& regionName, double d0MassMeV);
+
+		static std::string printRegionBoundsDeltaM(const std::string& regionName);
+
+		static std::string printRegionBoundsMD0(const std::string& regionName);
+
+		static void makeNormalizedComparisonPlot(
+			TH1 *const h1,
+			TH1 *const h2,
+			const TString &legLine1,
+			const TString &legLine2,
+			bool addNumEntries,
+			const TString &saveName);
+
 		static double angleBetweenDecayPlanesKutschke(
-			const TVector3& d4_motherRestFrame,
-			const TVector3& d5_motherRestFrame,
-			const TVector3& d6_motherRestFrame,
-			const TVector3& d7_motherRestFrame);
+			const TVector3 &d4_motherRestFrame,
+			const TVector3 &d5_motherRestFrame,
+			const TVector3 &d6_motherRestFrame,
+			const TVector3 &d7_motherRestFrame);
 
 		static TString makeTitleStr(
-		const TString& title,
-		const TString& xLabel,
-		const TString& yLabel);
+			const TString &title,
+			const TString &xLabel,
+			const TString &yLabel);
 
 		static TString makeYAxisLabel(
-		int numBins,
-		double axisMin,
-		double axisMax,
-		const TString& unit);
+			int numBins,
+			double axisMin,
+			double axisMax,
+			const TString &unit,
+			bool normalizedPlot);
 
 		static void changeToRainbowPalette();
 
 		static double verifyAngle(
-		const TVector3& v1,
-		const TVector3& v2,
-		double v1v2Angle,
-		bool v1v2AngleIsNegPiToPi,
-		const std::string& angleName,
-		bool printDiff);
+			const TVector3 &v1,
+			const TVector3 &v2,
+			double v1v2Angle,
+			bool v1v2AngleIsNegPiToPi,
+			const std::string &angleName,
+			bool printDiff);
 
 		static float helicity_angle_func(
 			float d0_px,

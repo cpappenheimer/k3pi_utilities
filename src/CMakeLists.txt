@@ -6,6 +6,7 @@ project(K3PiStudiesUtils VERSION 1.0
 
 ### find packages
 find_package(ROOT 6.16 CONFIG REQUIRED)
+find_package(Boost 1.50 REQUIRED)
 
 ### get path to include dirs
 cmake_path(GET CMAKE_CURRENT_SOURCE_DIR PARENT_PATH K3PISTUDIESUTILS_ROOT_DIR)
