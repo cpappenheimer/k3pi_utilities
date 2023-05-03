@@ -24,27 +24,142 @@ namespace K3PiStudies
 	const std::string K3PiStudiesUtils::_D0_FIT_FLAG = "D0_FIT";
 	const std::string K3PiStudiesUtils::_P_FLAG = "P";
 
-	void K3PiStudiesUtils::makeTLegendBkgTransparent(TLegend& leg)
+	/**
+	 * @see https://en.wikipedia.org/wiki/Inverse-variance_weighting
+	 *
+	 * @return pair where ans.first = weighted mean, ans.second = error on weighted mean
+	 */
+	std::pair<double, double> K3PiStudiesUtils::invVarWeightedAvg(
+		const std::vector<double> &vals,
+		const std::vector<double> &errs)
+	{
+		const unsigned int N = vals.size();
+		if (errs.size() != N)
+		{
+			std::cout << "Error calculating weighted mean. Inputs have different sizes." << std::endl;
+			return std::make_pair(std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::quiet_NaN());
+		}
+
+		std::vector<double> weightingFactors;
+		weightingFactors.reserve(N);
+		for (auto const &err : errs)
+		{
+			weightingFactors.push_back(1.0 / (err * err));
+		}
+
+		double sumInvWeightingFactors = 0.0;
+		for (auto const &w : weightingFactors)
+		{
+			sumInvWeightingFactors += w;
+		}
+		//std::cout << "sumInvWeightingFactors: " << sumInvWeightingFactors << std::endl;
+
+		double weightedMean = 0.0;
+		for (int i = 0; i < N; i++)
+		{
+			weightedMean += vals[i] * weightingFactors[i];
+		}
+		//std::cout << "weightedMean: " << weightedMean << std::endl;
+		weightedMean /= sumInvWeightingFactors;
+		//std::cout << "weightedMean after division: " << weightedMean << std::endl;
+
+		return std::make_pair(weightedMean, sqrt(1.0 / sumInvWeightingFactors));
+	}
+
+	/**
+	 * Eqs. 1 and 2 in Mike's angular distributions ANA note
+	 *
+	 * @return pair where asym.first = asymmetry, asym.second = error
+	 */
+	std::pair<double, double> K3PiStudiesUtils::calcAsymmetry(double nAbove, double nBelow)
+	{
+		double asym = (nAbove - nBelow) / (nAbove + nBelow);
+		double asymErr = sqrt((1.0 - asym * asym) / (nAbove + nBelow));
+
+		return std::make_pair(asym, asymErr);
+	}
+
+	/**
+	 * @param countPositiveEntries true if want to count # positive (>= 0) entries, false if want to count # negative entries
+	 * @return # of entries that are either positive or negative, depending on the value of `countPositiveEntries`, after the applyToEntry function is applied to each entry
+	 */
+	int K3PiStudiesUtils::countFuncResult(
+		const TH1 *const h,
+		std::function<double(double)> applyToEntry,
+		bool countPositiveEntries)
+	{
+		unsigned int nBins = h->GetNbinsX();
+		//std::cout << "Num bins: " << nBins << std::endl;
+
+		/**
+		 * From ROOT doc:
+		 * bin = 0;       underflow bin
+		 * bin = 1;       first bin with low-edge xlow INCLUDED
+		 * bin = nbins;   last bin with upper-edge xup EXCLUDED
+		 * bin = nbins+1; overflow bin
+		 */
+		unsigned int numUnderflow = h->GetBinContent(0);
+		unsigned int numOverflow = h->GetBinContent(nBins + 1);
+		if (numUnderflow != 0 || numOverflow != 0)
+		{
+			std::cout << "Underflow/overflow bins not empty. Cannot calculate number positive/negative entries accurately for " << h->GetName() << "." << std::endl;
+			return -1;
+		}
+
+		unsigned int numNeg = 0;
+		unsigned int numPos = 0;
+		for (int b = 1; b <= nBins; b++)
+		{
+			double binCenter = h->GetXaxis()->GetBinCenter(b);
+			double valToTest = applyToEntry(binCenter);
+			if (valToTest >= 0.0)
+			{
+				numPos += h->GetBinContent(b);
+			}
+			else
+			{
+				numNeg += h->GetBinContent(b);
+			}
+		}
+
+		unsigned int totEntries = h->GetEntries();
+		if (numPos + numNeg != totEntries)
+		{
+			std::cout << "Error calculating # positive/# negative entries for " << h->GetName() << "." << std::endl;
+			return -1;
+		}
+
+		if (countPositiveEntries)
+		{
+			return numPos;
+		}
+		else
+		{
+			return numNeg;
+		}
+	}
+
+	void K3PiStudiesUtils::makeTLegendBkgTransparent(TLegend &leg)
 	{
 		leg.SetBorderSize(0);
 		leg.SetFillColorAlpha(kWhite, 0.0);
 	}
 
-	void K3PiStudiesUtils::makeTPaveTextBkgTransparent(TPaveText& pt)
+	void K3PiStudiesUtils::makeTPaveTextBkgTransparent(TPaveText &pt)
 	{
 		pt.SetFillColorAlpha(kWhite, 0.0);
 	}
 
-	std::string K3PiStudiesUtils::printRegionBoundsDeltaM(const std::string& regionName)
+	std::string K3PiStudiesUtils::printRegionBoundsDeltaM(const std::string &regionName)
 	{
 		double upperBound = 0.0;
 		double lowerBound = 0.0;
-		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		if (boost::iequals(regionName, _ALL_REGION_FLAG))
 		{
-			lowerBound = -1.0*std::numeric_limits<double>::infinity();
+			lowerBound = -1.0 * std::numeric_limits<double>::infinity();
 			upperBound = std::numeric_limits<double>::infinity();
 		}
-		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		else if (boost::iequals(regionName, _SIG_REGION_FLAG))
 		{
 			lowerBound = _SIG_REGION_LOW_DELTAM_BOUND_MEV;
 			upperBound = _SIG_REGION_HIGH_DELTAM_BOUND_MEV;
@@ -59,16 +174,16 @@ namespace K3PiStudies
 		return std::to_string(lowerBound) + " <= delta M <= " + std::to_string(upperBound) + " [MeV]";
 	}
 
-	std::string K3PiStudiesUtils::printRegionBoundsMD0(const std::string& regionName)
+	std::string K3PiStudiesUtils::printRegionBoundsMD0(const std::string &regionName)
 	{
 		double upperBound = 0.0;
 		double lowerBound = 0.0;
-		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		if (boost::iequals(regionName, _ALL_REGION_FLAG))
 		{
-			lowerBound = -1.0*std::numeric_limits<double>::infinity();
+			lowerBound = -1.0 * std::numeric_limits<double>::infinity();
 			upperBound = std::numeric_limits<double>::infinity();
 		}
-		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		else if (boost::iequals(regionName, _SIG_REGION_FLAG))
 		{
 			lowerBound = _SIG_REGION_LOW_MD0_BOUND_MEV;
 			upperBound = _SIG_REGION_HIGH_MD0_BOUND_MEV;
@@ -84,15 +199,15 @@ namespace K3PiStudies
 	}
 
 	/**
-	 * returns a pair where pair.first = the lower limit to use on a delta m axis, pair.second = the upper limit to use on a delta m axis
-	*/
-	std::pair<double,double> K3PiStudiesUtils::getRegionAxisBoundsDeltaMMeV(const std::string& regionName)
+	 * @return a pair where pair.first = the lower limit to use on a delta m axis, pair.second = the upper limit to use on a delta m axis
+	 */
+	std::pair<double, double> K3PiStudiesUtils::getRegionAxisBoundsDeltaMMeV(const std::string &regionName)
 	{
-		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		if (boost::iequals(regionName, _ALL_REGION_FLAG))
 		{
 			return std::make_pair(_ALL_REGS_DELTAM_AXIS_MIN_MEV, _ALL_REGS_DELTAM_AXIS_MAX_MEV);
 		}
-		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		else if (boost::iequals(regionName, _SIG_REGION_FLAG))
 		{
 			return std::make_pair(_SIG_REGION_LOW_DELTAM_BOUND_MEV, _SIG_REGION_HIGH_DELTAM_BOUND_MEV);
 		}
@@ -104,15 +219,15 @@ namespace K3PiStudies
 	}
 
 	/**
-	 * returns a pair where pair.first = the lower limit to use on a D0 mass axis, pair.second = the upper limit to use on a D0 mass axis
-	*/
-	std::pair<double,double> K3PiStudiesUtils::getRegionAxisBoundsMD0MeV(const std::string& regionName)
+	 * @return a pair where pair.first = the lower limit to use on a D0 mass axis, pair.second = the upper limit to use on a D0 mass axis
+	 */
+	std::pair<double, double> K3PiStudiesUtils::getRegionAxisBoundsMD0MeV(const std::string &regionName)
 	{
-		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		if (boost::iequals(regionName, _ALL_REGION_FLAG))
 		{
 			return std::make_pair(_ALL_REGS_D0_MASS_AXIS_MIN_MEV, _ALL_REGS_D0_MASS_AXIS_MAX_MEV);
 		}
-		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		else if (boost::iequals(regionName, _SIG_REGION_FLAG))
 		{
 			return std::make_pair(_SIG_REGION_LOW_MD0_BOUND_MEV, _SIG_REGION_HIGH_MD0_BOUND_MEV);
 		}
@@ -124,14 +239,14 @@ namespace K3PiStudies
 	}
 
 	bool K3PiStudiesUtils::isInDeltaMRegion(
-		const std::string& regionName,
+		const std::string &regionName,
 		double deltaMMeV)
 	{
-		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		if (boost::iequals(regionName, _ALL_REGION_FLAG))
 		{
 			return true;
 		}
-		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		else if (boost::iequals(regionName, _SIG_REGION_FLAG))
 		{
 			return deltaMMeV >= _SIG_REGION_LOW_DELTAM_BOUND_MEV && deltaMMeV <= _SIG_REGION_HIGH_DELTAM_BOUND_MEV;
 		}
@@ -143,14 +258,14 @@ namespace K3PiStudies
 	}
 
 	bool K3PiStudiesUtils::isInD0MassRegion(
-		const std::string& regionName,
+		const std::string &regionName,
 		double d0MassMeV)
 	{
-		if ( boost::iequals(regionName, _ALL_REGION_FLAG) )
+		if (boost::iequals(regionName, _ALL_REGION_FLAG))
 		{
 			return true;
 		}
-		else if ( boost::iequals(regionName, _SIG_REGION_FLAG) )
+		else if (boost::iequals(regionName, _SIG_REGION_FLAG))
 		{
 			return d0MassMeV >= _SIG_REGION_LOW_MD0_BOUND_MEV && d0MassMeV <= _SIG_REGION_HIGH_MD0_BOUND_MEV;
 		}
@@ -162,12 +277,12 @@ namespace K3PiStudies
 	}
 
 	void K3PiStudiesUtils::makeNormalizedComparisonPlot(
-		TH1* const h1,
-		TH1* const h2,
-		const TString& legLine1,
-		const TString& legLine2,
+		TH1 *const h1,
+		TH1 *const h2,
+		const TString &legLine1,
+		const TString &legLine2,
 		bool addNumEntries,
-		const TString& saveName)
+		const TString &saveName)
 	{
 		const unsigned int n1 = h1->GetEntries();
 		const unsigned int n2 = h2->GetEntries();
@@ -178,15 +293,15 @@ namespace K3PiStudies
 		}
 
 		TCanvas c1;
-	
-		h1->Scale(1.0/h1->Integral());
-		h2->Scale(1.0/h2->Integral());
+
+		h1->Scale(1.0 / h1->Integral());
+		h2->Scale(1.0 / h2->Integral());
 
 		h1->SetLineColor(kBlue);
 		h1->SetLineWidth(2);
 		h1->Draw("HIST");
 
-		h2->SetLineColor(kRed+1);
+		h2->SetLineColor(kRed + 1);
 		h2->SetLineWidth(2);
 		h2->Draw("HIST SAME");
 
@@ -203,8 +318,8 @@ namespace K3PiStudies
 
 			TPaveText pt1(0.60, 0.8, 0.9, 0.9, "NDC"); // NDC sets coords
 			makeTPaveTextBkgTransparent(pt1);
-			pt1.AddText("n("+legLine1+") = "+e1);
-			pt1.AddText("n("+legLine2+") = "+e2);
+			pt1.AddText("n(" + legLine1 + ") = " + e1);
+			pt1.AddText("n(" + legLine2 + ") = " + e2);
 			pt1.Draw("SAME");
 
 			c1.SaveAs(saveName);
@@ -217,7 +332,7 @@ namespace K3PiStudies
 
 	/**
 	 * See Eq. 42 in Kutschke's An Angular Distribution Cookbook
-	 * returns angle between the (4,5) decay plane and the (6,7) decay plane in mother rest frame, ranging from -pi to pi
+	 * @return angle between the (4,5) decay plane and the (6,7) decay plane in mother rest frame, ranging from -pi to pi
 	 */
 	double K3PiStudiesUtils::angleBetweenDecayPlanesKutschke(
 		const TVector3 &d4_motherRestFrame,
@@ -256,7 +371,7 @@ namespace K3PiStudies
 	{
 		double axisLength = axisMax - axisMin;
 		double binSize = axisLength / numBins;
-		
+
 		TString yType = (normalizedPlot) ? "Fraction" : "Events";
 
 		return yType + " / " + std::to_string(binSize) + " " + unit;
@@ -268,8 +383,8 @@ namespace K3PiStudies
 	}
 
 	/**
-	 * v1v2AngleIsNegPiToPi: true if v1v2Angle ranges from -pi to pi, false if it ranges from 0 to 2 pi
-	 * returns diff between .Angle method and our angle calculation (v1v2Angle)
+	 * @param v1v2AngleIsNegPiToPi true if `v1v2Angle` ranges from -pi to pi, false if it ranges from 0 to 2 pi
+	 * @return diff between .Angle method and our angle calculation (`v1v2Angle`)
 	 */
 	double K3PiStudiesUtils::verifyAngle(
 		const TVector3 &v1,
@@ -310,7 +425,7 @@ namespace K3PiStudies
 	}
 
 	/**
-	 * From https://stackoverflow.com/a/15012792
+	 * @see https://stackoverflow.com/a/15012792
 	 */
 	bool K3PiStudiesUtils::combinedToleranceCompare(double x, double y)
 	{
@@ -334,8 +449,8 @@ namespace K3PiStudies
 	}
 
 	/**
-	 * angle_0_to_2pi: angle in range 0 to 2pi
-	 * returns: angle in range -pi to pi
+	 * @param angle_0_to_2pi angle in range 0 to 2pi
+	 * @return angle in range -pi to pi
 	 */
 	double K3PiStudiesUtils::changeAngleRange_neg_pi_to_pi(double angle_0_to_2pi)
 	{
@@ -350,8 +465,8 @@ namespace K3PiStudies
 	}
 
 	/**
-	 * angle_neg_pi_to_pi: angle that ranges from -pi to pi
-	 * returns: angle that ranges from 0 to 2pi
+	 * @param angle_neg_pi_to_pi angle that ranges from -pi to pi
+	 * @return angle that ranges from 0 to 2pi
 	 */
 	double K3PiStudiesUtils::changeAngleRange_0_to_2pi(double angle_neg_pi_to_pi)
 	{
@@ -367,7 +482,7 @@ namespace K3PiStudies
 	}
 
 	/**
-	 * isEqualFunc: returns true if the d1, d2 are equal; false otherwise
+	 * @param isEqualFunc returns true if the d1, d2 are equal; false otherwise
 	 */
 	bool K3PiStudiesUtils::areDoublesEqual(
 		std::function<bool(double, double)> isEqualFunc,

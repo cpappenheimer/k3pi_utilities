@@ -98,21 +98,32 @@ namespace K3PiStudies
 		K3PiStudiesUtils &operator=(const K3PiStudiesUtils &copyMe) = default;
 		K3PiStudiesUtils &operator=(K3PiStudiesUtils &&moveMe) = default;
 
-		static void makeTLegendBkgTransparent(TLegend& leg);
+		static std::pair<double, double> invVarWeightedAvg(
+			const std::vector<double> &vals,
+			const std::vector<double> &errs);
 
-		static void makeTPaveTextBkgTransparent(TPaveText& pt);
+		static std::pair<double, double> calcAsymmetry(double nAbove, double nBelow);
 
-		static std::pair<double,double> getRegionAxisBoundsDeltaMMeV(const std::string& regionName);
+		static int countFuncResult(
+			const TH1 *const h,
+			std::function<double(double)> applyToEntry,
+			bool countPositiveEntries);
 
-		static std::pair<double,double> getRegionAxisBoundsMD0MeV(const std::string& regionName);
+		static void makeTLegendBkgTransparent(TLegend &leg);
 
-		static bool isInDeltaMRegion(const std::string& regionName, double deltaMMeV);
+		static void makeTPaveTextBkgTransparent(TPaveText &pt);
 
-		static bool isInD0MassRegion(const std::string& regionName, double d0MassMeV);
+		static std::pair<double, double> getRegionAxisBoundsDeltaMMeV(const std::string &regionName);
 
-		static std::string printRegionBoundsDeltaM(const std::string& regionName);
+		static std::pair<double, double> getRegionAxisBoundsMD0MeV(const std::string &regionName);
 
-		static std::string printRegionBoundsMD0(const std::string& regionName);
+		static bool isInDeltaMRegion(const std::string &regionName, double deltaMMeV);
+
+		static bool isInD0MassRegion(const std::string &regionName, double d0MassMeV);
+
+		static std::string printRegionBoundsDeltaM(const std::string &regionName);
+
+		static std::string printRegionBoundsMD0(const std::string &regionName);
 
 		static void makeNormalizedComparisonPlot(
 			TH1 *const h1,
