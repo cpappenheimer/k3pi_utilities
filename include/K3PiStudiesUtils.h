@@ -78,6 +78,7 @@ namespace K3PiStudies
 		static const unsigned int _KAON_ID = 321;
 		static const unsigned int _PION_ID = 211;
 		static constexpr double _PI = TMath::Pi();
+		static constexpr double _TWO_PI = 2.0*TMath::Pi();
 		static constexpr double _GEV_TO_MEV = 1000.0;
 		static constexpr double _D0_LIFETIME_PS = 0.4103;
 		static constexpr double _NS_TO_PS = 1000.0;
