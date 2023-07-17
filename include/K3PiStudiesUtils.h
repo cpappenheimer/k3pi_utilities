@@ -78,7 +78,7 @@ namespace K3PiStudies
 		static const unsigned int _KAON_ID = 321;
 		static const unsigned int _PION_ID = 211;
 		static constexpr double _PI = TMath::Pi();
-		static constexpr double _TWO_PI = 2.0*TMath::Pi();
+		static constexpr double _TWO_PI = 2.0 * TMath::Pi();
 		static constexpr double _GEV_TO_MEV = 1000.0;
 		static constexpr double _D0_LIFETIME_PS = 0.4103;
 		static constexpr double _NS_TO_PS = 1000.0;
@@ -98,6 +98,19 @@ namespace K3PiStudies
 		~K3PiStudiesUtils() = default;
 		K3PiStudiesUtils &operator=(const K3PiStudiesUtils &copyMe) = default;
 		K3PiStudiesUtils &operator=(K3PiStudiesUtils &&moveMe) = default;
+
+		static TLorentzVector toTLorentzVector(
+			double pE,
+			double px,
+			double py,
+			double pz);
+
+		static std::vector<double> calc_phsp(
+			const TLorentzVector &pD0_IN_D0CM,
+			const TLorentzVector &pA_IN_D0CM,  // K-
+			const TLorentzVector &pB_IN_D0CM,  // OS pi 1
+			const TLorentzVector &pC_IN_D0CM,  // SS pi
+			const TLorentzVector &pD_IN_D0CM); // OS pi 2
 
 		static std::pair<double, double> invVarWeightedAvg(
 			const std::vector<double> &vals,
@@ -132,7 +145,9 @@ namespace K3PiStudies
 			const TString &legLine1,
 			const TString &legLine2,
 			bool addNumEntries,
-			const TString &saveName);
+			const TString &saveNam,
+			const TString& unit,
+			bool updateYLabel);
 
 		static double angleBetweenDecayPlanesKutschke(
 			const TVector3 &d4_motherRestFrame,

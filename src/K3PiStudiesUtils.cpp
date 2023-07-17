@@ -24,6 +24,17 @@ namespace K3PiStudies
 	const std::string K3PiStudiesUtils::_D0_FIT_FLAG = "D0_FIT";
 	const std::string K3PiStudiesUtils::_P_FLAG = "P";
 
+	TLorentzVector K3PiStudiesUtils::toTLorentzVector(
+		double pE,
+		double px,
+		double py,
+		double pz)
+	{
+		TLorentzVector v;
+		v.SetPxPyPzE(px, py, pz, pE);
+		return v;
+	}
+
 	/**
 	 * @see https://en.wikipedia.org/wiki/Inverse-variance_weighting
 	 *
@@ -52,16 +63,16 @@ namespace K3PiStudies
 		{
 			sumInvWeightingFactors += w;
 		}
-		//std::cout << "sumInvWeightingFactors: " << sumInvWeightingFactors << std::endl;
+		// std::cout << "sumInvWeightingFactors: " << sumInvWeightingFactors << std::endl;
 
 		double weightedMean = 0.0;
 		for (int i = 0; i < N; i++)
 		{
 			weightedMean += vals[i] * weightingFactors[i];
 		}
-		//std::cout << "weightedMean: " << weightedMean << std::endl;
+		// std::cout << "weightedMean: " << weightedMean << std::endl;
 		weightedMean /= sumInvWeightingFactors;
-		//std::cout << "weightedMean after division: " << weightedMean << std::endl;
+		// std::cout << "weightedMean after division: " << weightedMean << std::endl;
 
 		return std::make_pair(weightedMean, sqrt(1.0 / sumInvWeightingFactors));
 	}
@@ -89,7 +100,7 @@ namespace K3PiStudies
 		bool countPositiveEntries)
 	{
 		unsigned int nBins = h->GetNbinsX();
-		//std::cout << "Num bins: " << nBins << std::endl;
+		// std::cout << "Num bins: " << nBins << std::endl;
 
 		/**
 		 * From ROOT doc:
@@ -282,7 +293,9 @@ namespace K3PiStudies
 		const TString &legLine1,
 		const TString &legLine2,
 		bool addNumEntries,
-		const TString &saveName)
+		const TString &saveName,
+		const TString& unit,
+		bool updateYLabel)
 	{
 		const unsigned int n1 = h1->GetEntries();
 		const unsigned int n2 = h2->GetEntries();
@@ -293,6 +306,16 @@ namespace K3PiStudies
 		}
 
 		TCanvas c1;
+
+		if (updateYLabel)
+		{
+			double xMin = h1->GetXaxis()->GetXmin(); 
+    		double xMax = h1->GetXaxis()->GetXmax();
+    		unsigned int numBins = h1->GetNbinsX();
+			TString updatedYLabel = makeYAxisLabel(numBins, xMin, xMax, unit, true);
+			h1->SetYTitle(updatedYLabel);
+			h2->SetYTitle(updatedYLabel);
+		}
 
 		h1->Scale(1.0 / h1->Integral());
 		h2->Scale(1.0 / h2->Integral());
@@ -694,6 +717,73 @@ namespace K3PiStudies
 	{
 		ROOT::Math::PxPyPzEVector v(px, py, pz, pE);
 		return v.Pt();
+	}
+
+	/**
+	 * @param pA_IN_D0CM K
+	 * @param pB_IN_D0CM OS pi 1
+	 * @param pC_IN_D0CM SS pi
+	 * @param pD_IN_D0CM OS pi 2
+	 * @returns vector with entries m12, m34, cos12, cos34, phi
+	 */
+	std::vector<double> K3PiStudiesUtils::calc_phsp(
+		const TLorentzVector &pD0_IN_D0CM,
+		const TLorentzVector &pA_IN_D0CM, // K-
+		const TLorentzVector &pB_IN_D0CM, // OS pi 1
+		const TLorentzVector &pC_IN_D0CM, // SS pi
+		const TLorentzVector &pD_IN_D0CM) // OS pi 2
+	{
+		//  note that _pA_IN_D0CM_MEV, _pB_IN_D0CM_MEV, etc., are in the D0 CM.
+		//  we are going to define zhat as the pA_3vec+pB_3vec direction.
+		//  to consider the helicity angles of the AB and CD pairs in their
+		//  respective CMs, we should make Lorentz transformations along
+		//  the zhat (or -zhat) directions. Note that the CD system is moving
+		//  along the -zhat direction to start.
+		const TLorentzVector pAB_4vec = pA_IN_D0CM + pB_IN_D0CM;
+		const double mAB = pAB_4vec.M(); // m12
+
+		const TLorentzVector pCD_4vec = pC_IN_D0CM + pD_IN_D0CM;
+		const double mCD = pCD_4vec.M(); // m34
+
+		const TVector3 pA_3vec = pA_IN_D0CM.Vect();
+		const TVector3 pB_3vec = pB_IN_D0CM.Vect();
+		const TVector3 pC_3vec = pC_IN_D0CM.Vect();
+		const TVector3 pD_3vec = pD_IN_D0CM.Vect();
+		const TVector3 pAB_3vec = pAB_4vec.Vect();
+
+		const TVector3 yhat = (pA_3vec.Cross(pB_3vec)).Unit();
+		const TVector3 yhatPrime = (pC_3vec.Cross(pD_3vec)).Unit();
+		const TVector3 zhat = pAB_3vec.Unit();
+		const TVector3 xhat = (yhat.Cross(zhat)).Unit();
+
+		const double cosPhi = (yhat.Dot(yhatPrime));
+		const double sinPhi = (xhat.Dot(yhatPrime));
+		const double phi = changeAngleRange_0_to_2pi(TMath::ATan2(sinPhi, cosPhi));
+
+		const double energyAB = pAB_4vec.E();
+		TVector3 betaAB;
+		betaAB.SetXYZ(pAB_4vec.Px() / energyAB, pAB_4vec.Py() / energyAB, pAB_4vec.Pz() / energyAB);
+		const double energyCD = pCD_4vec.E();
+		TVector3 betaCD;
+		betaCD.SetXYZ(pCD_4vec.Px() / energyCD, pCD_4vec.Py() / energyCD, pCD_4vec.Pz() / energyCD);
+
+		TLorentzVector pAprime_4vec = pA_IN_D0CM;
+		pAprime_4vec.Boost(-1. * betaAB);
+		const TVector3 pAprime_3vec = pAprime_4vec.Vect();
+		const double paPrimeZ = pAprime_3vec.Dot(zhat);
+		const double paPrimeMag = pAprime_3vec.Mag();
+
+		TLorentzVector pCprime_4vec = pC_IN_D0CM;
+		pCprime_4vec.Boost(-1. * betaCD);
+		const TVector3 pCprime_3vec = pCprime_4vec.Vect();
+		const double pcPrimeZ = pCprime_3vec.Dot(zhat);
+		const double pcPrimeMag = pCprime_3vec.Mag();
+
+		const double cosThetaA = paPrimeZ / paPrimeMag; // cos theta 12
+		const double cosThetaC = pcPrimeZ / pcPrimeMag; // cos theta 34
+
+		std::vector<double> vars = {mAB, mCD, cosThetaA, cosThetaC, phi};
+		return vars;
 	}
 
 	/*
