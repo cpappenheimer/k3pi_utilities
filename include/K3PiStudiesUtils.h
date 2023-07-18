@@ -99,6 +99,8 @@ namespace K3PiStudies
 		K3PiStudiesUtils &operator=(const K3PiStudiesUtils &copyMe) = default;
 		K3PiStudiesUtils &operator=(K3PiStudiesUtils &&moveMe) = default;
 
+		static void adjustYAxisForCompare(TH1 *const h1, TH1 *const h2);
+
 		static TLorentzVector toTLorentzVector(
 			double pE,
 			double px,

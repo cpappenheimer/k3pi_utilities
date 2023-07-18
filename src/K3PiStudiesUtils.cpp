@@ -287,6 +287,18 @@ namespace K3PiStudies
 		}
 	}
 
+	void K3PiStudiesUtils::adjustYAxisForCompare(
+		TH1 *const h1,
+		TH1 *const h2)
+	{
+		const double yMax1 = h1->GetMaximum();
+		const double yMax2 = h2->GetMaximum();
+		const double overallMax = yMax1 > yMax2 ? yMax1 : yMax2;
+		const double yMax = 1.1 * overallMax;
+		h1->GetYaxis()->SetRangeUser(0.0, yMax);
+		h2->GetYaxis()->SetRangeUser(0.0, yMax);
+	}
+
 	void K3PiStudiesUtils::makeNormalizedComparisonPlot(
 		TH1 *const h1,
 		TH1 *const h2,
@@ -319,6 +331,8 @@ namespace K3PiStudies
 
 		h1->Scale(1.0 / h1->Integral());
 		h2->Scale(1.0 / h2->Integral());
+
+		adjustYAxisForCompare(h1, h2);
 
 		h1->SetLineColor(kBlue);
 		h1->SetLineWidth(2);

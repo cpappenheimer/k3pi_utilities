@@ -1,5 +1,14 @@
 import ROOT
 
+def drawHist(h, statStyleStr, saveName):
+    c = ROOT.TCanvas("c")
+
+    h.SetLineColor(ROOT.kBlack)
+    h.SetLineWidth(2)
+    h.Draw("HIST")
+    c.SaveAs(saveName)
+
+
 def test():
     print("Hello world")
 
@@ -90,13 +99,16 @@ def createHistFromDF(df, col, histName, histTitle, nBins, xMin, xMax):
 
 
 def createHistWithSameXRange(df, getMyXRange, col, histSuffix):
-    xMin = getMyXRange.GetXaxis().GetXmin() 
-    xMax = getMyXRange.GetXaxis().GetXmax()
+    xMin = getMyXRange.GetXaxis().GetXmin()
+    xMax = getMyXRange.GetXaxis().GetXmax() 
     numBins = getMyXRange.GetNbinsX()
 
-    emptyTitle = ";;"
+    xTitle = getMyXRange.GetXaxis().GetTitle()
+    yTitle = getMyXRange.GetYaxis().GetTitle()
+    title = getMyXRange.GetTitle()
+    titleStr = str( ROOT.K3PiStudies.K3PiStudiesUtils.makeTitleStr(title, xTitle, yTitle) )
 
-    return createHistFromDF(df, str(col), col+histSuffix, emptyTitle, numBins, xMin, xMax)
+    return createHistFromDF(df, str(col), col+histSuffix, titleStr, numBins, xMin, xMax)
 
 
 def createLeg():
@@ -109,8 +121,7 @@ def createLeg():
 def drawSuperimposed(h1, h1LegTitle, h2, h2LegTitle, saveName):
     c = ROOT.TCanvas("c")
 
-    numEvts1 = int(h1.GetEntries())
-    numEvts2 = int(h2.GetEntries())
+    ROOT.K3PiStudies.K3PiStudiesUtils.adjustYAxisForCompare(h1, h2)
 
     h1.SetLineColor(ROOT.kBlue)
     h1.SetLineWidth(2)
@@ -121,8 +132,8 @@ def drawSuperimposed(h1, h1LegTitle, h2, h2LegTitle, saveName):
     h2.Draw("HIST SAME")
 
     leg = createLeg()
-    leg.AddEntry(h1, h1LegTitle + " ({} events)".format(numEvts1), "L")
-    leg.AddEntry(h2, h2LegTitle + " ({} events)".format(numEvts2), "L") 
+    leg.AddEntry(h1, h1LegTitle, "L")
+    leg.AddEntry(h2, h2LegTitle, "L") 
     leg.Draw("SAME") 
 
     c.SaveAs(saveName)
