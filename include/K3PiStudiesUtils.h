@@ -8,6 +8,8 @@
 #include <TLorentzVector.h>
 #include <ROOT/RVec.hxx>
 #include <TH1.h>
+#include <TLegend.h>
+#include <TPaveText.h>
 
 namespace K3PiStudies
 {

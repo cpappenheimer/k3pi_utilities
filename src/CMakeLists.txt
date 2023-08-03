@@ -19,11 +19,9 @@ set_target_properties(K3PiStudiesUtils PROPERTIES
     CXX_STANDARD_REQUIRED YES
     CXX_EXTENSIONS NO
 )
-
 ### include dirs
 target_include_directories(K3PiStudiesUtils 
                             PUBLIC "${K3PISTUDIESUTILS_INC_DIR}")
-
 ### add required ext libs
 target_link_libraries(K3PiStudiesUtils PUBLIC 
                         ROOT::Core 

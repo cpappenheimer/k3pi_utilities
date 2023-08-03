@@ -144,7 +144,7 @@ def printAllCols(df):
 
 
 def printACol(df, colName):
-    df.Display(colName).Print()
+    df.Display([colName]).Print()
 
 
 def aliasAmpGen4VecComponents(df, pNum, ampGenName, noSymName, IS_D0, IS_RS):
@@ -161,3 +161,12 @@ def trimSpaceColNames(df):
         if cNoSpace != str(c):
             df = df.Alias(cNoSpace, c)
     return df
+
+
+def ampGentoTLorentzVector(ampGen4Vec_GeV):
+    # AmpGen 4vec ordering: px, py, pz, pE
+    return ROOT.K3PiStudies.K3PiStudiesUtils.toTLorentzVector(
+        ampGen4Vec_GeV[3] * ROOT.K3PiStudies.K3PiStudiesUtils._GEV_TO_MEV,  # pE
+        ampGen4Vec_GeV[0] * ROOT.K3PiStudies.K3PiStudiesUtils._GEV_TO_MEV,  # px
+        ampGen4Vec_GeV[1] * ROOT.K3PiStudies.K3PiStudiesUtils._GEV_TO_MEV,  # py
+        ampGen4Vec_GeV[2] * ROOT.K3PiStudies.K3PiStudiesUtils._GEV_TO_MEV) # pz
